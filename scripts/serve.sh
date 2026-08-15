@@ -11,14 +11,15 @@ shift || true
 BIN="$LLAMA_DIR/build-current/bin/llama-server"
 [[ -x "$BIN" ]] || { echo "llama-server 없음 — scripts/setup-llamacpp.sh 먼저 실행"; exit 1; }
 
-# Vulkan 빌드면 전체 레이어를 iGPU(GTT)로 오프로드
-NGL_ARGS=()
+# Vulkan 빌드면 전체 레이어를 iGPU(GTT)로 오프로드 + 튜닝 플래그 (docs/vulkan-tuning.md)
+VK_ARGS=()
 if [[ "$(readlink "$LLAMA_DIR/build-current")" == *vulkan* ]]; then
-  NGL_ARGS=(-ngl 99)
+  VK_ARGS=(-ngl 99 --no-mmap --flash-attn on)
+  export GGML_VK_VISIBLE_DEVICES=0
 fi
 
 exec "$BIN" -m "$MODEL" \
   --host 127.0.0.1 --port 8080 \
   -c 8192 --jinja \
-  "${NGL_ARGS[@]}" \
+  "${VK_ARGS[@]}" \
   "$@"

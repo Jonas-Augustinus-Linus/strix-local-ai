@@ -4,7 +4,7 @@
 
 - [x] 하드웨어/소프트웨어 조사 (docs/hardware.md)
 - [x] llama.cpp 클론 + CPU 빌드 (즉시 사용 가능한 폴백)
-- [ ] Vulkan 의존성 설치 (`libvulkan-dev`, `glslc`) 후 Vulkan 빌드
+- [x] Vulkan 의존성 설치 후 Vulkan 빌드 (890M 인식, coopmat 활성 — pp512 3.3배)
 - [x] 테스트 모델(Qwen3-4B)로 추론 검증
 - [ ] 후보 모델군 벤치마크 (benchmarks/에 tok/s 기록)
   - 4B / 8B / 12B / 24B 급에서 한국어 능력 위주 비교
