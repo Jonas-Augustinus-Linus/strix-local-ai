@@ -7,7 +7,7 @@ set -euo pipefail
 MODELS_DIR="${MODELS_DIR:-$HOME/models}"
 mkdir -p "$MODELS_DIR"
 
-REPO="${1:-Qwen/Qwen3-4B-Instruct-2507-GGUF}"
+REPO="${1:-unsloth/Qwen3-4B-Instruct-2507-GGUF}"
 FILE="${2:-Qwen3-4B-Instruct-2507-Q4_K_M.gguf}"
 
 URL="https://huggingface.co/${REPO}/resolve/main/${FILE}"

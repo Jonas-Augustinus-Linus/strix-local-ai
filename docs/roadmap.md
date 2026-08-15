@@ -11,18 +11,21 @@
 - [ ] `llama-server` 상시 기동 (systemd user unit, OpenAI 호환 API)
 - [ ] Open WebUI 또는 경량 프론트엔드 연결
 
-### 후보 모델 (시중 공개 모델 위주로 시작)
+### 후보 모델 (2026-08-15 리서치에서 검증된 선정)
 
-| 급 | 후보 | 비고 |
-|---|---|---|
-| 4B | Qwen3-4B-Instruct | 상시 구동, 빠른 응답 |
-| 8B | Qwen3-8B, Llama-3.1-8B 계열 | 일상 주력 |
-| 12B | Mistral-Nemo-12B 계열, Gemma-3-12B | 한국어/창작 균형 |
-| 24B | Mistral-Small-3.x-24B 계열 | 품질 주력 (GTT 한계 내 최대 실용선) |
+| 우선순위 | 모델 | 예상 성능 | 비고 |
+|---|---|---|---|
+| 1 | Gemma 4 26B-A4B QAT Q4_0 | ~25–30 t/s | MoE, 256k 컨텍스트 전체가 GTT에 들어감 |
+| 2 | gpt-oss-20b MXFP4 | 23.4 t/s (890M 실측 보고) | |
+| 한국어 품질 | EXAONE 4.0 32B Q4 | ~4–5 t/s | 품질 합격, 단 1.2-NC 라이선스 → 재배포 불가 |
+| 검증용 | Qwen3-4B-Instruct Q4_K_M | 빠름 | 파이프라인 검증 · 상시 경량 서버 |
 
-커뮤니티 파인튠(무검열 계열 포함)은 위 베이스 모델의 파생판 중 한국어 성능이
-유지되는 것을 벤치마크로 골라낸다. 선정 기준: ① 한국어 자연스러움 ② 창작(소설/시나리오)
-품질 ③ 지시 추종 ④ 라이선스(재배포 가능 여부 — 양자화 업로드 전제).
+주의: Qwen3.6-35B-A3B는 HX 370에서 크래시 버그(#22425) 열려 있음 — 회피.
+밀집(dense) 27B+는 3.8–6 t/s로 실사용 부적합, MoE 위주로 간다.
+
+커뮤니티 파인튠(무검열 계열 포함)은 위 베이스의 파생판 중 한국어 성능이 유지되는
+것을 벤치마크로 골라낸다. 선정 기준: ① 한국어 자연스러움 ② 창작 품질 ③ 지시 추종
+④ 라이선스(재배포 가능 여부 — 양자화 업로드 전제).
 
 ## Phase 2 — 양자화 기여 파이프라인
 
@@ -31,15 +34,18 @@
 - [ ] `llama-imatrix` → `llama-quantize` (Q4_K_M, Q5_K_M, Q6_K, IQ4_XS 등 세트 생산)
 - [ ] perplexity/KLD 품질 검증 자동화 (benchmarks/)
 - [ ] HF Hub 업로드 자동화 (모델 카드 템플릿 포함, 라이선스 확인 단계 필수)
-- [ ] 목표: 한국어 imatrix 양자화 GGUF 시리즈를 HF에 공개
+- [ ] **첫 릴리스 목표: kanana-1.5 (Apache 2.0) 한국어 보정 imatrix 양자화 + 한국어 KLD 수치**
+  — 한국어 imatrix 보정 데이터셋은 현재 어디에도 없음(리서치로 확인된 공백) → 확실한 기여 지점
 
-## Phase 3 — 이미지/영상 생성
+## Phase 3 — 이미지/영상 생성 (경로 확정됨, 2026-08-15 리서치)
 
-- [ ] Python 3.12 별도 환경 (uv) — PyTorch 호환성 확보
-- [ ] ROCm gfx1150 지원 현황 재조사 vs PyTorch Vulkan/therock 빌드 검토
-- [ ] ComfyUI 설치, SDXL → FLUX.1-dev(GGUF 양자화판) 순서로 검증
-- [ ] 영상: Wan2.x / LTX-Video 등 GGUF 양자화판을 GTT 26GB 안에서 실험
-- [ ] LoRA 학습: SDXL LoRA부터 (iGPU 학습 가능성 검증, 안 되면 kohya CPU/클라우드 분리)
+- [ ] Python 환경 분리 후 **ROCm 안정 휠** 설치 (유일한 올바른 경로, DKMS 절대 금지 — 커널 7.0에서 깨짐):
+  `pip install --index-url https://repo.amd.com/rocm/whl-multi-arch/ "torch[device-gfx1150]==2.12.0+rocm7.14.0"`
+- [ ] ComfyUI 플래그: `--force-shared-vram --enable-dynamic-vram --disable-mmap --cache-none --bf16-vae`
+- [ ] 이미지 모델: Illustrious XL v2 / NoobAI / Pony (~1–3분/장), Chroma1-HD FP8
+- [ ] 영상: Wan 2.2 5B / HunyuanVideo 1.5 Q4 + 4-step LoRA (~15–45분/5초 480p), Wan A14B ~1–2시간
+- [ ] LoRA 학습: SDXL LoRA 밤샘 학습, 7B QLoRA 로컬 가능 (Unsloth AMD 공식, `HSA_USE_SVM=0`)
+- 주의: ROCm nightly 회피, Vulkan MES wedge(#5993) 미해결 → GPU 동시 부하 회피
 
 ## Phase 4 — XDNA2 NPU
 

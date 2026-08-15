@@ -5,4 +5,4 @@
 
 | 파일 | 출처 | 용도 |
 |---|---|---|
-| Qwen3-4B-Instruct-2507-Q4_K_M.gguf | Qwen/Qwen3-4B-Instruct-2507-GGUF | 파이프라인 검증용 첫 모델 |
+| Qwen3-4B-Instruct-2507-Q4_K_M.gguf | unsloth/Qwen3-4B-Instruct-2507-GGUF | 파이프라인 검증용 첫 모델 (Qwen 공식 GGUF 레포는 없음) |
