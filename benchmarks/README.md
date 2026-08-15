@@ -24,3 +24,4 @@
 |---|---|---|---|---|---|
 | 2026-08-15 | Qwen3-4B-2507 Q4_K_M | CPU ×12 | 184.8 | 27.3 | [상세](2026-08-15-qwen3-4b-q4km-cpu.md) |
 | 2026-08-15 | Qwen3-4B-2507 Q4_K_M | Vulkan -ngl 99 | 609.4 | 34.1 | coopmat 활성, [상세](2026-08-15-qwen3-4b-q4km-vulkan.md) |
+| 2026-08-15 | gpt-oss-20b MXFP4 | Vulkan -ngl 99 -fa 1 | 608.6 | 32.7 | FA on +22% pp, [상세](2026-08-15-gpt-oss-20b-mxfp4-vulkan.md) |
