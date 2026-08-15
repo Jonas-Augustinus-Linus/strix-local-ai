@@ -6,8 +6,8 @@
 - [x] llama.cpp 클론 + CPU 빌드 (즉시 사용 가능한 폴백)
 - [x] Vulkan 의존성 설치 후 Vulkan 빌드 (890M 인식, coopmat 활성 — pp512 3.3배)
 - [x] 테스트 모델(Qwen3-4B)로 추론 검증
-- [ ] 후보 모델군 벤치마크 (benchmarks/에 tok/s 기록)
-  - 4B / 8B / 12B / 24B 급에서 한국어 능력 위주 비교
+- [x] 후보 모델군 1차 벤치마크 — Qwen3-4B / gpt-oss-20b / Gemma 4 26B-A4B 전부 32 t/s대 확인,
+  FA on 확정. 주력: Gemma 4 26B-A4B. (EXAONE 4.0 32B 한국어 품질 비교는 추후)
 - [ ] `llama-server` 상시 기동 (systemd user unit, OpenAI 호환 API)
 - [ ] Open WebUI 또는 경량 프론트엔드 연결
 
