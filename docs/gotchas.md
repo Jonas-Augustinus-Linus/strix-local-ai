@@ -23,3 +23,11 @@
 ## G4. `pkill -f`는 자기 자신도 죽인다
 
 패턴이 자기 셸 명령줄에 포함되면 래퍼 셸까지 죽는다. PID를 찾아 직접 kill 할 것.
+
+## G5. Vulkan 빌드에 SPIRV-Headers 필요 + include 경로 미전파 (build 10449+)
+
+`ggml-vulkan`이 `find_package(SPIRV-Headers CONFIG REQUIRED)`를 요구하는데, 우분투
+`glslc`/`libvulkan-dev`에는 없다. 해법: `spirv-headers` apt 패키지 또는 KhronosGroup
+소스를 `~/.local`에 설치. 단, llama.cpp가 find만 하고 **include 경로를 타깃에 연결하지
+않아** 비표준 경로면 `-DCMAKE_CXX_FLAGS="-isystem $HOME/.local/include"` 주입 필요
+(setup-llamacpp.sh가 자동 처리). 업스트림 개선 기여 후보.

@@ -25,6 +25,20 @@ if [[ -f /usr/include/vulkan/vulkan.h ]] && command -v glslc >/dev/null; then
   CMAKE_ARGS+=(-DGGML_VULKAN=ON)
   BUILD_DIR=build-vulkan
   echo "[i] Vulkan 백엔드로 빌드"
+
+  # SPIRV-Headers CMake 패키지 필요 (build 10449+). 시스템에 없으면 ~/.local에 사용자 설치
+  if [[ ! -f /usr/share/cmake/SPIRV-Headers/SPIRV-HeadersConfig.cmake ]] \
+     && [[ ! -f "$HOME/.local/share/cmake/SPIRV-Headers/SPIRV-HeadersConfig.cmake" ]]; then
+    echo "[i] SPIRV-Headers 없음 → ~/.local에 설치"
+    [[ -d ~/src/SPIRV-Headers ]] || git clone --depth 1 https://github.com/KhronosGroup/SPIRV-Headers ~/src/SPIRV-Headers
+    cmake -S ~/src/SPIRV-Headers -B ~/src/SPIRV-Headers/build -DCMAKE_INSTALL_PREFIX="$HOME/.local"
+    cmake --install ~/src/SPIRV-Headers/build
+  fi
+  CMAKE_ARGS+=(-DCMAKE_PREFIX_PATH="$HOME/.local")
+  # llama.cpp가 SPIRV-Headers를 find만 하고 include 경로를 타깃에 안 붙임 → 직접 주입
+  if [[ -f "$HOME/.local/include/spirv/unified1/spirv.hpp" ]]; then
+    CMAKE_ARGS+=(-DCMAKE_CXX_FLAGS="-isystem $HOME/.local/include")
+  fi
 else
   BUILD_DIR=build-cpu
   echo "[!] Vulkan 의존성 없음 → CPU 전용 빌드"
