@@ -62,10 +62,15 @@ fi
 
 if [[ $step == quantize || $step == all ]]; then
   echo "=== [4/4] 양자화 사다리 (BF16 원본 + 한국어 imatrix) ==="
+  # blk.40 = MTP(nextn) 레이어: 추론 그래프에서 실행되지 않아 imatrix 데이터가 없음.
+  #   초저비트 믹스(IQ3_XXS의 iq2_s 등)는 imatrix 없는 텐서를 거부(bail)하므로
+  #   imatrix 불필요한 q4_K로 고정 (+~0.46GB, 추론에는 미사용이라 품질 무관. 2026-08-16 실측)
   for T in Q6_K Q5_K_M Q4_K_M IQ4_XS IQ3_M IQ3_XXS IQ2_M; do
     OUT="$WORK/$NAME.KO-i1-$T.gguf"
     [[ -f "$OUT" ]] && { echo "skip $T"; continue; }
-    "$LLAMA/llama-quantize" --imatrix "$IMAT" "$BF16" "$OUT" "$T" "$(nproc)"
+    "$LLAMA/llama-quantize" --imatrix "$IMAT" \
+      --tensor-type 'blk\.40\.=q4_K' \
+      "$BF16" "$OUT" "$T" "$(nproc)"
   done
   ls -lh "$WORK"/*.gguf
 fi
