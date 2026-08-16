@@ -1,0 +1,19 @@
+; systemd user unit — ~/.config/systemd/user/llama-router.service 로 심볼릭 링크
+; 설치: ./scripts/install-server.sh
+[Unit]
+Description=llama.cpp router server (strix-local-ai)
+After=network-online.target
+
+[Service]
+ExecStart=%h/llama.cpp/build-current/bin/llama-server \
+  --models-dir %h/models \
+  --models-preset %h/strix-local-ai/server/models.ini \
+  --models-max 1 \
+  --host 127.0.0.1 --port 8080 \
+  --api-key-file %h/.config/llama-api-key
+Environment=GGML_VK_VISIBLE_DEVICES=0
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
