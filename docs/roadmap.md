@@ -49,7 +49,7 @@
 - [ ] perplexity/KLD 품질 검증 자동화 (benchmarks/)
 - [ ] HF Hub 업로드 자동화 (모델 카드 템플릿 포함, 라이선스 확인 단계 필수)
 - [ ] **첫 릴리스 목표: kanana-1.5 (Apache 2.0) 한국어 보정 imatrix 양자화 + 한국어 KLD 수치**
-  — 한국어 imatrix 보정 데이터셋은 현재 어디에도 없음(리서치로 확인된 공백) → 확실한 기여 지점
+  — **완료: https://huggingface.co/augustine223/kanana-1.5-8b-instruct-2505-KO-i1-GGUF**
 
 ## Phase 3 — 이미지/영상 생성 (경로 확정됨, 2026-08-15 리서치)
 
