@@ -1,0 +1,78 @@
+===== kanana-1.5-8b-instruct-2505.KO-i1-IQ2_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   7.043874 ±   0.126078
+Mean PPL(base)                :   6.593975 ±   0.123369
+Mean ln(PPL(Q)/PPL(base))     :   0.066002 ±   0.006665
+Mean PPL(Q)/PPL(base)         :   1.068229 ±   0.007119
+Mean PPL(Q)-PPL(base)         :   0.449898 ±   0.045165
+Mean    KLD:   0.257171 ±   0.003215
+Mean    Δp: -3.493 ± 0.104 %
+RMS Δp    : 15.124 ± 0.177 %
+Same top p: 78.054 ± 0.292 %
+===== kanana-1.5-8b-instruct-2505.KO-i1-IQ3_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   6.670216 ±   0.121624
+Mean PPL(base)                :   6.593975 ±   0.123369
+Mean ln(PPL(Q)/PPL(base))     :   0.011496 ±   0.003894
+Mean PPL(Q)/PPL(base)         :   1.011562 ±   0.003939
+Mean PPL(Q)-PPL(base)         :   0.076240 ±   0.025694
+Mean    KLD:   0.089018 ±   0.001355
+Mean    Δp: -1.411 ± 0.061 %
+RMS Δp    :  8.814 ± 0.129 %
+Same top p: 86.984 ± 0.237 %
+===== kanana-1.5-8b-instruct-2505.KO-i1-IQ3_XXS.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   6.751746 ±   0.122112
+Mean PPL(base)                :   6.593975 ±   0.123369
+Mean ln(PPL(Q)/PPL(base))     :   0.023645 ±   0.005238
+Mean PPL(Q)/PPL(base)         :   1.023927 ±   0.005363
+Mean PPL(Q)-PPL(base)         :   0.157771 ±   0.034722
+Mean    KLD:   0.154379 ±   0.002326
+Mean    Δp: -1.829 ± 0.079 %
+RMS Δp    : 11.306 ± 0.155 %
+Same top p: 82.820 ± 0.266 %
+===== kanana-1.5-8b-instruct-2505.KO-i1-IQ4_XS.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   6.698911 ±   0.125933
+Mean PPL(base)                :   6.593975 ±   0.123369
+Mean ln(PPL(Q)/PPL(base))     :   0.015789 ±   0.002434
+Mean PPL(Q)/PPL(base)         :   1.015914 ±   0.002472
+Mean PPL(Q)-PPL(base)         :   0.104936 ±   0.016366
+Mean    KLD:   0.033269 ±   0.000560
+Mean    Δp: -0.251 ± 0.038 %
+RMS Δp    :  5.456 ± 0.106 %
+Same top p: 91.636 ± 0.195 %
+===== kanana-1.5-8b-instruct-2505.KO-i1-Q3_K_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   6.787421 ±   0.127210
+Mean PPL(base)                :   6.593975 ±   0.123369
+Mean ln(PPL(Q)/PPL(base))     :   0.028915 ±   0.003631
+Mean PPL(Q)/PPL(base)         :   1.029337 ±   0.003737
+Mean PPL(Q)-PPL(base)         :   0.193446 ±   0.024590
+Mean    KLD:   0.076630 ±   0.001296
+Mean    Δp: -0.606 ± 0.056 %
+RMS Δp    :  7.990 ± 0.124 %
+Same top p: 87.843 ± 0.230 %
+===== kanana-1.5-8b-instruct-2505.KO-i1-Q4_K_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   6.642132 ±   0.124617
+Mean PPL(base)                :   6.593975 ±   0.123369
+Mean ln(PPL(Q)/PPL(base))     :   0.007277 ±   0.002126
+Mean PPL(Q)/PPL(base)         :   1.007303 ±   0.002141
+Mean PPL(Q)-PPL(base)         :   0.048156 ±   0.014119
+Mean    KLD:   0.027031 ±   0.000512
+Mean    Δp: -0.130 ± 0.035 %
+RMS Δp    :  4.907 ± 0.094 %
+Same top p: 92.524 ± 0.185 %
+===== kanana-1.5-8b-instruct-2505.KO-i1-Q5_K_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   6.606090 ±   0.123661
+Mean PPL(base)                :   6.593975 ±   0.123369
+Mean ln(PPL(Q)/PPL(base))     :   0.001835 ±   0.001405
+Mean PPL(Q)/PPL(base)         :   1.001837 ±   0.001408
+Mean PPL(Q)-PPL(base)         :   0.012114 ±   0.009280
+Mean    KLD:   0.010595 ±   0.000197
+Mean    Δp: -0.040 ± 0.023 %
+RMS Δp    :  3.194 ± 0.069 %
+Same top p: 94.877 ± 0.155 %
+===== kanana-1.5-8b-instruct-2505.KO-i1-Q6_K.gguf =====
