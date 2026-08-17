@@ -1,0 +1,88 @@
+===== Qwen3.6-35B-A3B.KO-i1-IQ2_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   9.866240 ±   0.191842
+Mean PPL(base)                :   8.532846 ±   0.165036
+Mean ln(PPL(Q)/PPL(base))     :   0.145196 ±   0.005540
+Mean PPL(Q)/PPL(base)         :   1.156266 ±   0.006406
+Mean PPL(Q)-PPL(base)         :   1.333394 ±   0.057458
+Mean    KLD:   0.204869 ±   0.002362
+Mean    Δp: -3.240 ± 0.093 %
+RMS Δp    : 12.532 ± 0.169 %
+Same top p: 77.957 ± 0.317 %
+===== Qwen3.6-35B-A3B.KO-i1-IQ3_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.886497 ±   0.170001
+Mean PPL(base)                :   8.532846 ±   0.165036
+Mean ln(PPL(Q)/PPL(base))     :   0.040610 ±   0.003285
+Mean PPL(Q)/PPL(base)         :   1.041446 ±   0.003421
+Mean PPL(Q)-PPL(base)         :   0.353651 ±   0.028972
+Mean    KLD:   0.070453 ±   0.001094
+Mean    Δp: -1.507 ± 0.055 %
+RMS Δp    :  7.308 ± 0.133 %
+Same top p: 86.076 ± 0.265 %
+===== Qwen3.6-35B-A3B.KO-i1-IQ3_XXS.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   9.151771 ±   0.177051
+Mean PPL(base)                :   8.532846 ±   0.165036
+Mean ln(PPL(Q)/PPL(base))     :   0.070024 ±   0.004166
+Mean PPL(Q)/PPL(base)         :   1.072534 ±   0.004468
+Mean PPL(Q)-PPL(base)         :   0.618924 ±   0.038722
+Mean    KLD:   0.111552 ±   0.001630
+Mean    Δp: -1.795 ± 0.069 %
+RMS Δp    :  9.159 ± 0.146 %
+Same top p: 83.348 ± 0.285 %
+===== Qwen3.6-35B-A3B.KO-i1-IQ4_XS.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.641392 ±   0.167478
+Mean PPL(base)                :   8.532846 ±   0.165036
+Mean ln(PPL(Q)/PPL(base))     :   0.012641 ±   0.002147
+Mean PPL(Q)/PPL(base)         :   1.012721 ±   0.002174
+Mean PPL(Q)-PPL(base)         :   0.108546 ±   0.018593
+Mean    KLD:   0.028897 ±   0.000480
+Mean    Δp: -0.259 ± 0.034 %
+RMS Δp    :  4.479 ± 0.104 %
+Same top p: 91.601 ± 0.212 %
+===== Qwen3.6-35B-A3B.KO-i1-Q4_K_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.602199 ±   0.166240
+Mean PPL(base)                :   8.532846 ±   0.165036
+Mean ln(PPL(Q)/PPL(base))     :   0.008095 ±   0.001896
+Mean PPL(Q)/PPL(base)         :   1.008128 ±   0.001912
+Mean PPL(Q)-PPL(base)         :   0.069353 ±   0.016291
+Mean    KLD:   0.023196 ±   0.000356
+Mean    Δp: -0.268 ± 0.031 %
+RMS Δp    :  4.011 ± 0.090 %
+Same top p: 91.940 ± 0.208 %
+===== Qwen3.6-35B-A3B.KO-i1-Q5_K_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.587132 ±   0.166603
+Mean PPL(base)                :   8.532846 ±   0.165036
+Mean ln(PPL(Q)/PPL(base))     :   0.006342 ±   0.001366
+Mean PPL(Q)/PPL(base)         :   1.006362 ±   0.001374
+Mean PPL(Q)-PPL(base)         :   0.054286 ±   0.011782
+Mean    KLD:   0.011847 ±   0.000182
+Mean    Δp: -0.034 ± 0.022 %
+RMS Δp    :  2.830 ± 0.057 %
+Same top p: 94.293 ± 0.177 %
+===== Qwen3.6-35B-A3B.KO-i1-Q6_K.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.558005 ±   0.165639
+Mean PPL(base)                :   8.532846 ±   0.165036
+Mean ln(PPL(Q)/PPL(base))     :   0.002944 ±   0.001232
+Mean PPL(Q)/PPL(base)         :   1.002948 ±   0.001236
+Mean PPL(Q)-PPL(base)         :   0.025158 ±   0.010544
+Mean    KLD:   0.009873 ±   0.000323
+Mean    Δp: -0.043 ± 0.021 %
+RMS Δp    :  2.693 ± 0.108 %
+Same top p: 94.791 ± 0.170 %
+===== Qwen3.6-35B-A3B.KO-i1-Q8_0.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.525811 ±   0.164851
+Mean PPL(base)                :   8.532846 ±   0.165036
+Mean ln(PPL(Q)/PPL(base))     :  -0.000825 ±   0.000894
+Mean PPL(Q)/PPL(base)         :   0.999176 ±   0.000893
+Mean PPL(Q)-PPL(base)         :  -0.007035 ±   0.007625
+Mean    KLD:   0.004458 ±   0.000282
+Mean    Δp: -0.010 ± 0.013 %
+RMS Δp    :  1.750 ± 0.078 %
+Same top p: 96.787 ± 0.135 %
