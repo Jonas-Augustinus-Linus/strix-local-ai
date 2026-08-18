@@ -17,6 +17,16 @@
 
 상세: [docs/hardware.md](docs/hardware.md)
 
+## 공개 산출물
+
+| 산출물 | 내용 |
+|---|---|
+| [kanana-1.5-8b KO-i1-GGUF](https://huggingface.co/augustine223/kanana-1.5-8b-instruct-2505-KO-i1-GGUF) | 한국어 보정 imatrix 양자 9종 — 세계 최초 한국어 중심 보정 (저비트에서 영어 보정 대비 KLD -5~6%, 최대 3.3σ) |
+| [Qwen3.6-35B-A3B KO-i1-GGUF](https://huggingface.co/augustine223/Qwen3.6-35B-A3B-KO-i1-GGUF) | 한국어 보정 8종 — MoE에서 4비트조차 유의한 이득 (-5.1~-6.8%, 최대 4.3σ) |
+| [ryzen-npu-linux](https://github.com/Jonas-Augustinus-Linus/ryzen-npu-linux) | XDNA1/XDNA2 NPU 리눅스 활용 — W4A16 GEMM 5.94 TOPS (오픈 스택) |
+
+방법론과 실측 수치는 [benchmarks/](benchmarks/), 함정 모음은 [docs/gotchas.md](docs/gotchas.md) 참조.
+
 ## 디렉터리 구조
 
 ```

@@ -6,7 +6,7 @@
 [테일넷 디바이스들]  iPhone / MacBook / Mac Studio / Windows / 에이전트들
         │  (WireGuard 암호화, 테일넷 전용 — funnel 절대 금지)
         ▼
-[tailscale serve]  https://amd-ai-gt-370.tail5b345c.ts.net
+[tailscale serve]  https://<your-machine>.<your-tailnet>.ts.net
         ├─ :443  → 127.0.0.1:3000  Open WebUI (채팅 UI)
         └─ :8443 → 127.0.0.1:8080  OpenAI 호환 API (자동화/에이전트용)
         ▼
@@ -36,7 +36,7 @@
 ## 클라이언트 설정 (모든 테일넷 디바이스/에이전트 공통)
 
 ```
-Base URL : https://amd-ai-gt-370.tail5b345c.ts.net:8443/v1
+Base URL : https://<your-machine>.<your-tailnet>.ts.net:8443/v1
 API Key  : ~/.config/llama-api-key 내용
 모델 이름 : gemma4-26b-a4b | gpt-oss-20b-MXFP4 | Qwen3-4B-Instruct-2507-Q4_K_M
 ```
