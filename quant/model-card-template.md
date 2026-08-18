@@ -41,3 +41,15 @@ tags: [gguf, llama.cpp, imatrix, korean, quantized]
 ## 제작
 
 Ryzen AI 9 HX PRO 370 (Radeon 890M iGPU, Vulkan/RADV)에서 제작.
+
+## 고지 (Disclaimer) — 모든 릴리스에 필수 포함
+
+> **본 프로젝트는 무검열(uncensored/abliterated) 버전만을 개발·공개합니다.**
+> 이 모델은 안전 필터/거부 학습이 제거된 상태로, 있는 그대로(as-is) 제공됩니다.
+> 생성된 출력과 그 사용으로 발생하는 **모든 결과에 대한 책임은 전적으로 사용자에게
+> 귀속됩니다.** 사용자는 자신의 관할지 법률과 원본 모델 라이선스를 준수할 책임이
+> 있습니다.
+>
+> This release is an uncensored variant, provided **as-is**. All responsibility
+> for generated outputs and any consequences of use rests **solely with the
+> user**, who must comply with applicable laws and the base model's license.

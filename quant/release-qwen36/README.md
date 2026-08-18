@@ -92,3 +92,13 @@ llama-server -m Qwen3.6-35B-A3B.KO-i1-IQ4_XS.gguf -ngl 99 -c 32768 --jinja -fa o
 
 원본 모델 Apache 2.0 (Alibaba/Qwen). 이 양자화판도 Apache 2.0.
 보정 코퍼스 출처: 전부 PD / CC BY / CC BY-SA / Apache / MIT / KOGL-1 (문서화됨).
+
+## 고지 (Disclaimer)
+
+이 모델은 있는 그대로(as-is) 제공됩니다. 생성된 출력과 그 사용으로 발생하는
+모든 결과에 대한 책임은 전적으로 사용자에게 귀속되며, 사용자는 자신의 관할지
+법률과 원본 모델 라이선스를 준수할 책임이 있습니다.
+
+Provided as-is. All responsibility for generated outputs and any consequences
+of use rests solely with the user, who must comply with applicable laws and
+the base model's license.
