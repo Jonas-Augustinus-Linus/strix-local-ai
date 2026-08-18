@@ -1,0 +1,23 @@
+[Unit]
+Description=ComfyUI (strix-local-ai) — GPU 상호배제: llama-router와 동시 실행 금지 (MES 웨지 #5993)
+# Conflicts: 이쪽을 켜면 router가 내려가고, router를 켜면 이쪽이 내려감 (대칭 배제)
+Conflicts=llama-router.service
+After=llama-router.service
+
+[Service]
+Type=simple
+# 이중 안전장치 — Conflicts가 처리하지만 수동 조작 꼬임 대비
+ExecStartPre=-/usr/bin/systemctl --user stop llama-router.service
+ExecStart=/home/amd-ai/venvs/comfy/bin/python /home/amd-ai/ComfyUI/main.py \
+  --enable-dynamic-vram --disable-mmap --cache-none --bf16-vae --reserve-vram 2
+# 종료하면 일상용 router 자동 복귀.
+# --no-block 필수: 블로킹 start는 Conflicts와 맞물려 데드락 → stop 타임아웃 → SIGKILL
+#   (router 시작 잡이 comfyui 정지 완료를 기다리고, 정지는 이 명령 종료를 기다림)
+ExecStopPost=-/usr/bin/systemctl --user start --no-block llama-router.service
+Restart=no
+# ComfyUI는 Ctrl-C(SIGINT)로 곱게 죽음 — SIGTERM이면 failed로 기록됨
+KillSignal=SIGINT
+SuccessExitStatus=130
+
+[Install]
+WantedBy=default.target
