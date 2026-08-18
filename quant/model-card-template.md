@@ -42,6 +42,18 @@ tags: [gguf, llama.cpp, imatrix, korean, quantized]
 
 Ryzen AI 9 HX PRO 370 (Radeon 890M iGPU, Vulkan/RADV)에서 제작.
 
+## 철학 (Why uncensored) — 모든 릴리스에 필수 포함
+
+과도한 필터링은 모델의 실제 성능을 함께 깎아왔습니다. 이 프로젝트는
+자유인으로서의 사용자를 전제로, 그 자유의지에 시스템적 제한을 두지 않는
+온전한 형태의 자유 언어모델을 지향합니다. 판단과 책임은 도구가 아니라
+사람의 몫이며, 이 자유로운 전제 위에서 창의성이 온전히 발휘되기를 바랍니다.
+
+Excessive filtering has consistently taxed real model capability. This project
+assumes a free human being as its user: a complete, unrestricted language model
+with no systemic constraints on free will. Judgment and responsibility belong
+to people, not tools — and on that free premise, may creativity be fully expressed.
+
 ## 고지 (Disclaimer) — 모든 릴리스에 필수 포함
 
 > **본 프로젝트는 무검열(uncensored/abliterated) 버전만을 개발·공개합니다.**
