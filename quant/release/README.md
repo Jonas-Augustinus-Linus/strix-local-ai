@@ -22,6 +22,19 @@ tags:
 허용 라이선스 대화 데이터 6종, 영어/코드)로 보정하여 한국어 토큰 분포에서의 양자화
 손실을 줄였습니다.
 
+## 🔰 처음이신가요? (ollama가 뭔지 몰라도 됩니다)
+
+1. [LM Studio](https://lmstudio.ai) 설치 (무료, Windows/Mac/Linux)
+2. 🔍 검색에 **`augustine223`** → 이 모델 선택
+3. 파일은 **하나만**: RAM 8GB면 `IQ3_M`, 16GB면 `Q4_K_M`(추천), 32GB+면 `Q6_K`
+4. 다운로드 후 💬 채팅 탭에서 바로 대화
+
+터미널이 편하다면 한 줄:
+```bash
+ollama run hf.co/augustine223/kanana-1.5-8b-instruct-2505-KO-i1-GGUF:Q4_K_M
+```
+상세 가이드(KoboldCpp/llama.cpp 포함): [실행 가이드](https://github.com/Jonas-Augustinus-Linus/strix-local-ai/blob/main/docs/run-guide-ko.md)
+
 ## 측정 결과 (한국어 held-out 텍스트, KLD vs F16)
 
 **보정 언어 효과 — 비트가 낮을수록 한국어 보정의 우위가 커집니다:**

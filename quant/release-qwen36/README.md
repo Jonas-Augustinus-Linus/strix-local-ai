@@ -22,6 +22,20 @@ tags:
 **한국어 79% / 영어+코드 21%** 코퍼스(위키백과 111편, 퍼블릭 도메인 문학 191편,
 허용 라이선스 대화 데이터 6종, 영어/코드 — 1차 릴리스와 동일)로 보정했습니다.
 
+## 🔰 처음이신가요? (ollama가 뭔지 몰라도 됩니다)
+
+1. [LM Studio](https://lmstudio.ai) 설치 (무료, Windows/Mac/Linux)
+2. 🔍 검색에 **`augustine223`** → 이 모델 선택
+3. 파일은 **하나만**: RAM 24GB면 `IQ3_M`, 32GB면 `IQ4_XS`(추천), 48GB+면 `Q5_K_M`
+4. 다운로드 후 💬 채팅 탭에서 대화 — **응답이 비면 max tokens를 4000+로**
+   (이 모델은 답하기 전에 "생각"하는 리즈닝 모델입니다)
+
+터미널이 편하다면 한 줄:
+```bash
+ollama run hf.co/augustine223/Qwen3.6-35B-A3B-KO-i1-GGUF:IQ4_XS
+```
+상세 가이드(KoboldCpp/llama.cpp 포함): [실행 가이드](https://github.com/Jonas-Augustinus-Linus/strix-local-ai/blob/main/docs/run-guide-ko.md)
+
 ## 측정 결과 (한국어 held-out 텍스트, KLD vs BF16)
 
 **보정 언어 효과 (영어 보정 mradermacher i1 대비):**
