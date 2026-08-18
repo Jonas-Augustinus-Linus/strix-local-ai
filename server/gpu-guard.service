@@ -1,0 +1,12 @@
+[Unit]
+Description=GPU 메모리 고갈 크래시 가드 (amdgpu CS ENOMEM 감지 시 범인 자동 종료)
+
+[Service]
+Type=simple
+ExecStart=/home/amd-ai/strix-local-ai/scripts/gpu-guard.sh
+Restart=always
+RestartSec=10
+Nice=-5
+
+[Install]
+WantedBy=default.target
