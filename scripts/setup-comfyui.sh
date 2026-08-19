@@ -27,11 +27,14 @@ PY=${COMFY_PYTHON:-$HOME/.local/bin/python3.12}
 "$VENV/bin/pip" install -r "$COMFY/requirements.txt"
 
 # 실제 모델 파일은 ~/models/comfyui (repo 관행: 앱 디렉토리는 포인터만)
-mkdir -p ~/models/comfyui/{checkpoints,loras,vae,controlnet,upscale_models,embeddings}
+# diffusion_models/text_encoders: Chroma 등 unet+T5 분리형 모델용 (2026-08-19)
+mkdir -p ~/models/comfyui/{checkpoints,diffusion_models,text_encoders,loras,vae,controlnet,upscale_models,embeddings}
 cat > "$COMFY/extra_model_paths.yaml" <<'EOF'
 strix:
   base_path: /home/amd-ai/models/comfyui
   checkpoints: checkpoints
+  diffusion_models: diffusion_models
+  text_encoders: text_encoders
   loras: loras
   vae: vae
   controlnet: controlnet
