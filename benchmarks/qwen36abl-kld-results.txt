@@ -1,0 +1,88 @@
+===== Huihui-Qwen3.6-35B-A3B-abliterated.KO-i1-IQ2_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :  10.303782 ±   0.202725
+Mean PPL(base)                :   8.834249 ±   0.172707
+Mean ln(PPL(Q)/PPL(base))     :   0.153875 ±   0.005722
+Mean PPL(Q)/PPL(base)         :   1.166345 ±   0.006673
+Mean PPL(Q)-PPL(base)         :   1.469533 ±   0.062286
+Mean    KLD:   0.211882 ±   0.002395
+Mean    Δp: -3.292 ± 0.094 %
+RMS Δp    : 12.663 ± 0.169 %
+Same top p: 77.589 ± 0.319 %
+===== Huihui-Qwen3.6-35B-A3B-abliterated.KO-i1-IQ3_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   9.221907 ±   0.178924
+Mean PPL(base)                :   8.834249 ±   0.172707
+Mean ln(PPL(Q)/PPL(base))     :   0.042946 ±   0.003426
+Mean PPL(Q)/PPL(base)         :   1.043881 ±   0.003577
+Mean PPL(Q)-PPL(base)         :   0.387658 ±   0.031516
+Mean    KLD:   0.074222 ±   0.001084
+Mean    Δp: -1.412 ± 0.056 %
+RMS Δp    :  7.485 ± 0.126 %
+Same top p: 85.865 ± 0.267 %
+===== Huihui-Qwen3.6-35B-A3B-abliterated.KO-i1-IQ3_XXS.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   9.496661 ±   0.185355
+Mean PPL(base)                :   8.834249 ±   0.172707
+Mean ln(PPL(Q)/PPL(base))     :   0.072304 ±   0.004303
+Mean PPL(Q)/PPL(base)         :   1.074982 ±   0.004626
+Mean PPL(Q)-PPL(base)         :   0.662412 ±   0.041393
+Mean    KLD:   0.116318 ±   0.001621
+Mean    Δp: -1.779 ± 0.070 %
+RMS Δp    :  9.315 ± 0.141 %
+Same top p: 82.716 ± 0.289 %
+===== Huihui-Qwen3.6-35B-A3B-abliterated.KO-i1-IQ4_XS.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.934414 ±   0.174856
+Mean PPL(base)                :   8.834249 ±   0.172707
+Mean ln(PPL(Q)/PPL(base))     :   0.011274 ±   0.002235
+Mean PPL(Q)/PPL(base)         :   1.011338 ±   0.002260
+Mean PPL(Q)-PPL(base)         :   0.100165 ±   0.019971
+Mean    KLD:   0.030776 ±   0.000552
+Mean    Δp: -0.266 ± 0.036 %
+RMS Δp    :  4.722 ± 0.111 %
+Same top p: 91.279 ± 0.216 %
+===== Huihui-Qwen3.6-35B-A3B-abliterated.KO-i1-Q4_K_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.951660 ±   0.175572
+Mean PPL(base)                :   8.834249 ±   0.172707
+Mean ln(PPL(Q)/PPL(base))     :   0.013203 ±   0.002050
+Mean PPL(Q)/PPL(base)         :   1.013290 ±   0.002077
+Mean PPL(Q)-PPL(base)         :   0.117411 ±   0.018447
+Mean    KLD:   0.025321 ±   0.000510
+Mean    Δp: -0.186 ± 0.032 %
+RMS Δp    :  4.222 ± 0.105 %
+Same top p: 91.694 ± 0.211 %
+===== Huihui-Qwen3.6-35B-A3B-abliterated.KO-i1-Q5_K_M.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.875286 ±   0.173655
+Mean PPL(base)                :   8.834249 ±   0.172707
+Mean ln(PPL(Q)/PPL(base))     :   0.004634 ±   0.001579
+Mean PPL(Q)/PPL(base)         :   1.004645 ±   0.001586
+Mean PPL(Q)-PPL(base)         :   0.041037 ±   0.014010
+Mean    KLD:   0.013692 ±   0.000280
+Mean    Δp: -0.092 ± 0.024 %
+RMS Δp    :  3.132 ± 0.084 %
+Same top p: 93.989 ± 0.182 %
+===== Huihui-Qwen3.6-35B-A3B-abliterated.KO-i1-Q6_K.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.867992 ±   0.173611
+Mean PPL(base)                :   8.834249 ±   0.172707
+Mean ln(PPL(Q)/PPL(base))     :   0.003812 ±   0.001339
+Mean PPL(Q)/PPL(base)         :   1.003820 ±   0.001345
+Mean PPL(Q)-PPL(base)         :   0.033743 ±   0.011888
+Mean    KLD:   0.010141 ±   0.000195
+Mean    Δp: -0.039 ± 0.020 %
+RMS Δp    :  2.616 ± 0.055 %
+Same top p: 94.767 ± 0.170 %
+===== Huihui-Qwen3.6-35B-A3B-abliterated.KO-i1-Q8_0.gguf =====
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+Mean PPL(Q)                   :   8.837588 ±   0.172793
+Mean PPL(base)                :   8.834249 ±   0.172707
+Mean ln(PPL(Q)/PPL(base))     :   0.000378 ±   0.000904
+Mean PPL(Q)/PPL(base)         :   1.000378 ±   0.000904
+Mean PPL(Q)-PPL(base)         :   0.003339 ±   0.007985
+Mean    KLD:   0.004629 ±   0.000107
+Mean    Δp: -0.029 ± 0.013 %
+RMS Δp    :  1.683 ± 0.033 %
+Same top p: 96.611 ± 0.138 %
