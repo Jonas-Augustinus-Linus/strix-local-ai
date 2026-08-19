@@ -73,6 +73,7 @@ ollama run hf.co/augustine223/kanana-1.5-8b-instruct-2505-KO-i1-GGUF:Q4_K_M
 - llama.cpp build 10450 (`ece963f41`), 전 측정 `-c 512` 동일
 - imatrix: 774청크(~39.6만 토큰), 기본 설정(`llama-imatrix -ngl 99`)
 - 평가: KLUE-MRC 검증셋 + 2026-08 korea.kr 기사 (보정 코퍼스와 오염 검사 30/30×2 통과)
+- **코퍼스 전체 공개**: [korean-imatrix-calibration-corpus](https://huggingface.co/datasets/augustine223/korean-imatrix-calibration-corpus) (세그먼트 원문 + 302개 출처 문서 + 빌드 스크립트 + 평가셋)
 - 보정 코퍼스 전체 출처(302개)와 파이프라인 스크립트: 함께 공개된
   `calibration-sources.md` 및 제작 레포 참조
 - 제작 하드웨어: AMD Ryzen AI 9 HX PRO 370 (Radeon 890M iGPU, Vulkan/RADV)

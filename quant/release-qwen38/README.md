@@ -69,7 +69,7 @@ ollama run hf.co/augustine223/Huihui-Qwen3.8-27B-abliterated-KO-i1-GGUF:Q5_K_M
 - llama.cpp build 10449 CPU 백엔드, 전 측정 `-c 512` 동일
 - imatrix: Q8_0 기반 수집, 708청크(~36만 토큰), 최종 PPL 8.578
 - 평가: KLUE-MRC 검증셋 + 2026-08 korea.kr 기사 (보정 코퍼스와 오염 검사 통과)
-- 보정 코퍼스 전체 출처(302개): 동봉 `calibration-sources.md`
+- **코퍼스 전체 공개**: [korean-imatrix-calibration-corpus](https://huggingface.co/datasets/augustine223/korean-imatrix-calibration-corpus) (세그먼트 원문 + 302개 출처 문서 + 빌드 스크립트 + 평가셋)
 - blk.64(MTP/nextn)는 추론 그래프 비활성 텐서 — imatrix 미수집으로 전 타입 q4_K 고정.
   MTP 추측 디코딩은 ggml-org의 `mtp-Qwen3.8-27B-*.gguf`를 `-md`로 지정
 - 제작: AMD Ryzen AI 9 HX PRO 370 (32GB, Radeon 890M) — 전 과정 CPU/iGPU 로컬,

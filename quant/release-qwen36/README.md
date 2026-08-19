@@ -73,7 +73,7 @@ ollama run hf.co/augustine223/Qwen3.6-35B-A3B-KO-i1-GGUF:IQ4_XS
 - llama.cpp build 10449 CPU 백엔드, 전 측정 `-c 512` 동일
 - imatrix: **Q8_0 기반** 수집(대형 MoE 표준 관행), 708청크(~36만 토큰), expert 커버리지 ≥99.61%
 - 평가: KLUE-MRC 검증셋 + 2026-08 korea.kr 기사 (보정 코퍼스와 오염 검사 통과, 1차 릴리스와 동일 코퍼스)
-- 보정 코퍼스 전체 출처(302개): 동봉된 `calibration-sources.md` 참조
+- **코퍼스 전체 공개**: [korean-imatrix-calibration-corpus](https://huggingface.co/datasets/augustine223/korean-imatrix-calibration-corpus) (세그먼트 원문 + 302개 출처 문서 + 빌드 스크립트 + 평가셋)
 - blk.40(MTP/nextn)은 추론 그래프 비활성 텐서 — imatrix가 수집되지 않아
   IQ3_XXS/IQ2_M에서는 q4_K로 고정(다른 타입은 각자 기본 믹스). MTP 추측 디코딩을
   쓰려면 ggml-org의 별도 `mtp-Qwen3.6-35B-A3B` GGUF를 `-md`로 지정하세요.

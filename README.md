@@ -24,6 +24,7 @@
 | [kanana-1.5-8b KO-i1-GGUF](https://huggingface.co/augustine223/kanana-1.5-8b-instruct-2505-KO-i1-GGUF) | 한국어 보정 imatrix 양자 9종 — 세계 최초 한국어 중심 보정 (저비트에서 영어 보정 대비 KLD -5~6%, 최대 3.3σ) |
 | [Qwen3.6-35B-A3B KO-i1-GGUF](https://huggingface.co/augustine223/Qwen3.6-35B-A3B-KO-i1-GGUF) | 한국어 보정 8종 — MoE에서 4비트조차 유의한 이득 (-5.1~-6.8%, 최대 4.3σ) |
 | [Huihui-Qwen3.8-27B-abliterated KO-i1-GGUF](https://huggingface.co/augustine223/Huihui-Qwen3.8-27B-abliterated-KO-i1-GGUF) | **무검열 + 한국어 보정** — 이 조합의 첫 공개 릴리스 (정적 배포판 대비 KLD -23.7%, 9.1σ) |
+| [korean-imatrix-calibration-corpus](https://huggingface.co/datasets/augustine223/korean-imatrix-calibration-corpus) | 한국어 imatrix 보정 코퍼스 데이터셋 — 세그먼트 원문 + 302개 출처 + 빌드 스크립트 + 평가셋 (누구나 한국어 보정 quant 제작 가능) |
 | [ryzen-npu-linux](https://github.com/Jonas-Augustinus-Linus/ryzen-npu-linux) | XDNA1/XDNA2 NPU 리눅스 활용 — W4A16 GEMM 5.94 TOPS (오픈 스택) |
 
 방법론과 실측 수치는 [benchmarks/](benchmarks/), 함정 모음은 [docs/gotchas.md](docs/gotchas.md) 참조.
