@@ -63,6 +63,11 @@
           <option value="1">1장</option>
           <option value="2">2장</option>
           <option value="4">4장</option>
+          <option value="10">10장 (대량)</option>
+          <option value="50">50장 (대량)</option>
+          <option value="100">100장 (대량)</option>
+          <option value="500">500장 (대량)</option>
+          <option value="1000">1000장 (대량)</option>
         </select>
       </div>
     </div>
@@ -94,6 +99,7 @@
       <input type="range" id="strength" min="0.3" max="1.2" step="0.1" value="1.0" oninput="document.getElementById('strVal').textContent=this.value" style="width:100%;">
     </div>
     <button id="go" onclick="gen()">그리기 ▶</button>
+    <button id="stopBtn" onclick="stopGen()" style="display:none; background:#7d3a3a;">⏹ 중단 (대량 생성 멈춤)</button>
     <div class="bar"><i id="prog"></i></div>
     <div id="status"></div>
   </div>
@@ -107,6 +113,7 @@ const H = (location.hostname === 'localhost' || location.hostname === '127.0.0.1
 let poseImage = null; // 업로드된 참조 이미지 파일명 (ComfyUI input)
 let cnMode = "off";   // off | pose | canny
 let cnStrength = 1.0;
+let stopFlag = false; // 대량 생성 중단 플래그
 // GPU 모드 확인/전환 (맥 등 원격에서 SSH 없이) — 페이지 로드 시 자동
 async function checkMode(setTo){
   const bar = document.getElementById('modebar');
@@ -255,37 +262,61 @@ async function gen(){
   const batch = Number(document.getElementById('batch').value);
   cnMode = document.getElementById('cnmode').value;
   cnStrength = Number(document.getElementById('strength').value);
-  const body = { prompt: wf(pos, neg, model, w, h, seed, hires, batch) };
   const perImg = (hires>=2 ? 265 : hires>=1.5 ? 150 : 55) + (poseImage?40:0);
-  const est = Math.round(perImg*batch/60*10)/10; // 대략 예상 분
-  B.disabled = true; P.style.width='5%'; S.textContent='생성 중… (약 '+est+'분, '+batch+'장)';
-  document.getElementById('gallery').innerHTML='';
+  const G = document.getElementById('gallery'); G.innerHTML=''; const seen=new Set();
+  function addImg(im){
+    const url=H+'/view?filename='+encodeURIComponent(im.filename)+'&subfolder='+encodeURIComponent(im.subfolder||'')+'&type='+im.type;
+    const img=document.createElement('img'); img.src=url; img.className='thumb'; G.insertBefore(img,G.firstChild);
+    while(G.children.length>12) G.removeChild(G.lastChild); // 최근 12장만(1000장 대비 브라우저 보호)
+  }
+  B.disabled=true; stopFlag=false; document.getElementById('stopBtn').style.display='block'; P.style.width='5%';
   try {
-    const r = await fetch(H+'/prompt', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-    const j = await r.json();
-    const id = j.prompt_id;
-    if(!id){ S.textContent='오류: '+JSON.stringify(j).slice(0,120); B.disabled=false; return; }
-    const maxPoll = 60 + batch*Math.ceil(perImg/2)*1.5; // 장수·배율에 따라 대기 확장
-    let done=false;
-    for(let i=0;i<maxPoll && !done;i++){
-      await new Promise(s=>setTimeout(s,2000));
-      P.style.width = Math.min(90, 5+i*(80/maxPoll))+'%';
-      const hr = await fetch(H+'/history/'+id); const hj = await hr.json();
-      if(hj[id] && hj[id].status && hj[id].status.completed){
-        const outs = hj[id].outputs; const G = document.getElementById('gallery'); G.innerHTML='';
-        let n=0;
-        for(const k in outs){ if(outs[k].images){
-          for(const im of outs[k].images){
-            const url = H+'/view?filename='+encodeURIComponent(im.filename)+'&subfolder='+encodeURIComponent(im.subfolder||'')+'&type='+im.type;
-            const img = document.createElement('img'); img.src=url; img.className='thumb'; G.appendChild(img); n++;
+    if(batch<=4){
+      const est=Math.round(perImg*batch/60*10)/10;
+      S.textContent='생성 중… (약 '+est+'분, '+batch+'장)';
+      const j=await (await fetch(H+'/prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:wf(pos,neg,model,w,h,seed,hires,batch)})})).json();
+      const id=j.prompt_id;
+      if(!id){ S.textContent='오류: '+JSON.stringify(j).slice(0,120); }
+      else{
+        const maxPoll=60+batch*Math.ceil(perImg/2)*1.5; let done=false;
+        for(let i=0;i<maxPoll&&!done&&!stopFlag;i++){
+          await new Promise(s=>setTimeout(s,2000)); P.style.width=Math.min(90,5+i*(80/maxPoll))+'%';
+          const hj=await (await fetch(H+'/history/'+id)).json();
+          if(hj[id]&&hj[id].status&&hj[id].status.completed){
+            for(const k in hj[id].outputs){ if(hj[id].outputs[k].images) for(const im of hj[id].outputs[k].images) addImg(im); }
+            done=true; S.textContent='완료 ✓ '+batch+'장 (~/사진/strix-ai 저장)';
           }
-        }}
-        done=true; S.textContent='완료 ✓ '+n+'장 (~/사진/strix-ai 에 저장됨)';
+        }
+        if(!done&&!stopFlag) S.textContent='시간 초과 — 다시 시도';
       }
+    } else {
+      // 대량: N장을 개별 작업으로 순차 큐 (한 번에 큰 배치는 GTT 초과 → 1장씩 큐잉)
+      const N=batch; const ids=[]; const eta=Math.round(perImg*N/60);
+      S.textContent='대량 생성 준비… '+N+'장 큐 등록 중 (예상 총 '+eta+'분)';
+      for(let i=0;i<N&&!stopFlag;i++){
+        try{ const j=await (await fetch(H+'/prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:wf(pos,neg,model,w,h,seed+i,hires,1)})})).json(); if(j.prompt_id) ids.push(j.prompt_id); }catch(e){}
+      }
+      const total=ids.length; let doneCount=0;
+      while(doneCount<total&&!stopFlag){
+        await new Promise(s=>setTimeout(s,3000));
+        const q=await (await fetch(H+'/queue')).json();
+        const remaining=(q.queue_running?q.queue_running.length:0)+(q.queue_pending?q.queue_pending.length:0);
+        doneCount=total-remaining; P.style.width=Math.min(96,(doneCount/total)*100)+'%';
+        S.textContent='대량 생성 중… '+doneCount+'/'+total+'장 완료 (총 예상 '+eta+'분, 최근 12장만 표시)';
+        const hist=await (await fetch(H+'/history?max_items=14')).json();
+        for(const pid in hist){ if(seen.has(pid))continue; const v=hist[pid];
+          if(v.status&&v.status.completed){ seen.add(pid); for(const k in v.outputs){ if(v.outputs[k].images) for(const im of v.outputs[k].images) addImg(im); } } }
+      }
+      if(stopFlag) S.textContent='중단됨 — '+doneCount+'/'+total+'장까지 저장됨 (~/사진/strix-ai)';
+      else { P.style.width='100%'; S.textContent='✓ 대량 완료 '+total+'장 (전부 ~/사진/strix-ai 저장)'; }
     }
-    P.style.width='100%'; if(!done) S.textContent='시간 초과 — 장수를 줄이거나 다시 시도';
-  } catch(e){ S.textContent='연결 오류 — ComfyUI(8188)가 켜져 있나요?'; }
+  } catch(e){ S.textContent='연결 오류 — ComfyUI(이미지 모드)가 켜져 있나요?'; }
+  document.getElementById('stopBtn').style.display='none';
   B.disabled=false; setTimeout(()=>P.style.width='0',800);
+}
+async function stopGen(){
+  stopFlag=true; S.textContent='중단 요청됨…';
+  try{ await fetch(H+'/interrupt',{method:'POST'}); await fetch(H+'/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clear:true})}); }catch(e){}
 }
 </script>
 </body>
