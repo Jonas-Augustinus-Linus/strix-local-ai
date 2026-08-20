@@ -34,7 +34,8 @@
 
 ```
 strix-local-ai/
-├── docs/         # 하드웨어 조사, 로드맵, 모델 선정 노트
+├── docs/         # 사용자 가이드 · 하드웨어 · 로드맵
+├── server/       # systemd 유닛 · 이미지 서버 · 워크플로
 ├── scripts/      # 셋업/실행 스크립트 (llama.cpp 빌드, 서버 기동 등)
 ├── quant/        # GGUF 양자화 파이프라인 (HF → GGUF → imatrix → 업로드)
 ├── benchmarks/   # 모델별 tok/s, 품질 측정 결과
@@ -59,11 +60,28 @@ sudo apt install -y libvulkan-dev glslc libcurl4-openssl-dev
 ./scripts/serve.sh
 ```
 
+## 현재 되는 것
+
+이 머신에서 지금 실제로 가동 중인 기능:
+
+- **로컬 LLM 채팅** — llama-router 다중 모델 상시 서버 (OpenAI 호환 API)
+- **GGUF 양자화 파이프라인** — HF → GGUF → imatrix → 업로드, 한국어 보정 코퍼스 공개
+- **로컬 이미지 생성** — SDXL 5종 (Animagine · Illustrious · NoobAI · Pony · RealVis) + Chroma, ComfyUI 백엔드 + 초간단 웹 페이지
+- **ControlNet** — 자세(OpenPose) · 구도(Canny Union) 참조 이미지 기반 제어
+- **LoRA 훈련** — sd-scripts 기반 학습 스크립트
+
+한국어 실행 가이드:
+
+- [docs/run-guide-ko.md](docs/run-guide-ko.md) — 공개 릴리스 실행법
+- [docs/uncensored-guide-ko.md](docs/uncensored-guide-ko.md) — 무검열 방침
+- [docs/comfyui-guide-ko.md](docs/comfyui-guide-ko.md) — 이미지 생성 (ComfyUI)
+- [docs/lora-training-ko.md](docs/lora-training-ko.md) — LoRA 훈련
+
 ## 로드맵
 
 [docs/roadmap.md](docs/roadmap.md) 참고. 큰 줄기:
 
-1. **Phase 1 — 추론 기반**: llama.cpp Vulkan 빌드, 4B~24B 모델 벤치마크, 상시 서버
-2. **Phase 2 — 양자화 기여**: HF → GGUF 변환 파이프라인, imatrix 양자화, HF 업로드 자동화
-3. **Phase 3 — 이미지/영상**: ComfyUI + SDXL/FLUX/WanVideo (Vulkan/ROCm 검토)
+1. **Phase 1 — 추론 기반** ✅: llama.cpp Vulkan 빌드, 4B~24B 모델 벤치마크, 상시 서버
+2. **Phase 2 — 양자화 기여** ✅: HF → GGUF 변환 파이프라인, imatrix 양자화, HF 업로드 자동화
+3. **Phase 3 — 이미지/영상** ✅: ComfyUI + SDXL 5종 · Chroma, ControlNet(자세/구도), LoRA 훈련 가동 중 (영상은 진행 중)
 4. **Phase 4 — NPU**: XDNA2 오프로딩 실험 (ryzen-npu-linux 연계)

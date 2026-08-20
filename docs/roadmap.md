@@ -8,8 +8,8 @@
 - [x] 테스트 모델(Qwen3-4B)로 추론 검증
 - [x] 후보 모델군 1차 벤치마크 — Qwen3-4B / gpt-oss-20b / Gemma 4 26B-A4B 전부 32 t/s대 확인,
   FA on 확정. 주력: Gemma 4 26B-A4B. (EXAONE 4.0 32B 한국어 품질 비교는 추후)
-- [ ] `llama-server` 상시 기동 (systemd user unit, OpenAI 호환 API)
-- [ ] Open WebUI 또는 경량 프론트엔드 연결
+- [x] `llama-server` 상시 기동 (systemd user unit, OpenAI 호환 API)
+- [x] Open WebUI 또는 경량 프론트엔드 연결
 
 ### 후보 모델 (2026-08-15 리서치에서 검증된 선정)
 
@@ -43,22 +43,22 @@
 
 ## Phase 2 — 양자화 기여 파이프라인
 
-- [ ] `quant/` 파이프라인: HF safetensors → `convert_hf_to_gguf.py` → F16 GGUF
-- [ ] imatrix 데이터셋 준비 (한국어+영어 혼합 코퍼스 — 한국어 특화 imatrix가 차별점)
-- [ ] `llama-imatrix` → `llama-quantize` (Q4_K_M, Q5_K_M, Q6_K, IQ4_XS 등 세트 생산)
-- [ ] perplexity/KLD 품질 검증 자동화 (benchmarks/)
-- [ ] HF Hub 업로드 자동화 (모델 카드 템플릿 포함, 라이선스 확인 단계 필수)
-- [ ] **첫 릴리스 목표: kanana-1.5 (Apache 2.0) 한국어 보정 imatrix 양자화 + 한국어 KLD 수치**
+- [x] `quant/` 파이프라인: HF safetensors → `convert_hf_to_gguf.py` → F16 GGUF
+- [x] imatrix 데이터셋 준비 (한국어+영어 혼합 코퍼스 — 한국어 특화 imatrix가 차별점)
+- [x] `llama-imatrix` → `llama-quantize` (Q4_K_M, Q5_K_M, Q6_K, IQ4_XS 등 세트 생산)
+- [x] perplexity/KLD 품질 검증 자동화 (benchmarks/)
+- [x] HF Hub 업로드 자동화 (모델 카드 템플릿 포함, 라이선스 확인 단계 필수)
+- [x] **첫 릴리스 목표: kanana-1.5 (Apache 2.0) 한국어 보정 imatrix 양자화 + 한국어 KLD 수치**
   — **완료: https://huggingface.co/augustine223/kanana-1.5-8b-instruct-2505-KO-i1-GGUF**
 
 ## Phase 3 — 이미지/영상 생성 (경로 확정됨, 2026-08-15 리서치)
 
-- [ ] Python 환경 분리 후 **ROCm 안정 휠** 설치 (유일한 올바른 경로, DKMS 절대 금지 — 커널 7.0에서 깨짐):
+- [x] Python 환경 분리 후 **ROCm 안정 휠** 설치 (유일한 올바른 경로, DKMS 절대 금지 — 커널 7.0에서 깨짐):
   `pip install --index-url https://repo.amd.com/rocm/whl-multi-arch/ "torch[device-gfx1150]==2.12.0+rocm7.14.0"`
-- [ ] ComfyUI 플래그: `--force-shared-vram --enable-dynamic-vram --disable-mmap --cache-none --bf16-vae`
-- [ ] 이미지 모델: Illustrious XL v2 / NoobAI / Pony (~1–3분/장), Chroma1-HD FP8
+- [x] ComfyUI 플래그: `--enable-dynamic-vram --disable-mmap --cache-none --bf16-vae --reserve-vram 2`
+- [x] 이미지 모델: Illustrious XL v2 / NoobAI / Pony (~1–3분/장), Chroma1-HD FP8
 - [ ] 영상: Wan 2.2 5B / HunyuanVideo 1.5 Q4 + 4-step LoRA (~15–45분/5초 480p), Wan A14B ~1–2시간
-- [ ] LoRA 학습: SDXL LoRA 밤샘 학습, 7B QLoRA 로컬 가능 (Unsloth AMD 공식, `HSA_USE_SVM=0`)
+- [x] LoRA 학습: SDXL LoRA 밤샘 학습, 7B QLoRA 로컬 가능 (Unsloth AMD 공식, `HSA_USE_SVM=0`)
 - 주의: ROCm nightly 회피, Vulkan MES wedge(#5993) 미해결 → GPU 동시 부하 회피
 
 ## Phase 4 — XDNA2 NPU

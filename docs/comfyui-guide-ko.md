@@ -42,17 +42,26 @@ ComfyUI 화면은 **상자(노드)들이 선으로 연결된 그림**입니다. 
 
 | 바꾸고 싶은 것 | 어디서 |
 |---|---|
-| **모델** (Illustrious/NoobAI/Pony) | "Load Checkpoint" 상자의 드롭다운 |
+| **모델** (Animagine/Illustrious/NoobAI/Pony/RealVisXL) | "Load Checkpoint" 상자의 드롭다운 |
 | **크기** | "Empty Latent Image" 상자 (width/height, 세로면 832×1216) |
 | **여러 장** | "Empty Latent Image"의 batch_size 를 2~4로 |
 | **품질(스텝)** | "KSampler" 상자의 steps (24~30, 높을수록 세밀·느림) |
 | **랜덤/고정** | "KSampler"의 seed 옆 control: randomize(매번 다름)/fixed(같음) |
 
+**설치된 모델 5종** (Load Checkpoint 드롭다운):
+- **Animagine XL 4.0** — 애니 최고급 (기본 추천)
+- **Illustrious XL v2.0** — 애니/일러스트 범용
+- **NoobAI XL v1.1** — 애니, 다양한 화풍
+- **Pony Diffusion V6 XL** — 애니/서양풍 (score 태그 필수)
+- **RealVisXL V5** — 실사 최고급 (사진풍)
+
 ## 5. 품질 올리는 핵심 태그
 
 **맨 앞에 품질 태그를 붙이면 확 좋아집니다:**
 - Illustrious/NoobAI: `masterpiece, best quality, amazing quality, very aesthetic, absurdres,`
+- Animagine XL 4.0: `masterpiece, high score, great score, absurdres,`
 - **Pony는 반드시**: `score_9, score_8_up, score_7_up,` (이거 없으면 품질 급락!)
+- **RealVisXL V5 (실사)**: `photorealistic, RAW photo, best quality, 8k uhd,` — 실사 전용이니 **애니 태그(masterpiece 등)는 쓰지 마세요**
 
 자주 쓰는 태그:
 - 인물: `1girl` `1boy`, `long hair`, `blue eyes`, `smile`, `dress`, `kimono`
@@ -62,15 +71,25 @@ ComfyUI 화면은 **상자(노드)들이 선으로 연결된 그림**입니다. 
 **영어가 어려우면**: 채팅(WebUI)에서 LLM한테 "벚꽃 정원의 흰머리 소녀를 danbooru
 태그로 만들어줘" 하면 정확한 태그를 만들어 줍니다. (채팅 모드로 전환 필요)
 
-## 6. 사진/자세 참조로 그리기 (ControlNet — 추후 설치)
+## 6. 사진/자세 참조로 그리기 (ControlNet — 이미 설치됨)
 
-X에서 본 "관절 사진 → 그 자세로", "내 사진 → 애니로" 같은 건 **ControlNet**이라는
-추가 기능입니다. 지금은 없지만 원하면 설치할 수 있습니다:
-- **자세 제어**(OpenPose): 관절/포즈 이미지 → 그 자세의 캐릭터
-- **구도 유지**(Canny/Depth): 사진 윤곽/깊이 → 같은 구도로 애니·실사 변환
-- **부분 수정**(Inpaint): 기존 그림에서 얼굴만/옷만 교체
+X에서 본 "관절 사진 → 그 자세로", "참조 사진 → 같은 구도로" 같은 건
+**ControlNet**입니다. **이미 설치·작동 중**이며, 가장 쉬운 사용처는 간단 페이지
+`localhost:8189/simple-image.html`입니다 (ComfyUI 본체보다 편함):
 
-→ 설치를 원하면 "ControlNet 깔아줘"라고 말씀하세요 (모델 ~2.5GB씩 + 워크플로 세팅).
+1. 페이지에서 **ControlNet 드롭다운**을 엽니다 — 두 가지:
+   - **자세(pose / OpenPose)**: 관절·포즈를 따라 그림
+   - **구도(canny)**: 참조 사진의 윤곽·구도를 따라 그림
+   - 💡 **자세 재현은 '구도(canny)'가 더 정확**합니다. 포즈까지 확실히 잡고
+     싶으면 canny를 먼저 써 보세요.
+2. **참조 사진 업로드**: 따라 하고 싶은 포즈/구도 사진을 올립니다.
+   (사진이 없으면 **예시 프리셋** 버튼으로 바로 시험 가능)
+3. **강도 슬라이더**: 높이면 참조를 더 강하게 따르고, 낮추면 자유롭게 그립니다.
+   (보통 0.5~0.8 정도)
+4. 프롬프트를 넣고 생성하면 참조 자세/구도대로 그려집니다.
+
+설치된 모델: `models/comfyui/controlnet/`에 OpenPose + Union(canny)이 들어 있어
+추가 설치 없이 바로 됩니다. ComfyUI 본체에서 직접 노드로 쓸 수도 있습니다.
 
 ## 7. 문제 해결
 
