@@ -30,9 +30,10 @@ case "${1:-menu}" in
   image)
     notify "이미지 모드 준비 중…" "ComfyUI를 켭니다 (채팅 잠시 정지)"
     "$HERE/gpu-mode.sh" image >/dev/null 2>&1
-    docker start open-webui >/dev/null 2>&1 || true
-    wait_webui; open_browser
-    notify "이미지 준비 완료" "WebUI 이미지 아이콘으로 생성하세요"
+    # ComfyUI 자체 UI를 연다 (이 기기는 GPU 하나라 WebUI 이미지보다 이게 매끄러움)
+    for i in $(seq 1 40); do curl -s -m 2 http://127.0.0.1:8188/system_stats >/dev/null 2>&1 && break; sleep 2; done
+    xdg-open "http://localhost:8188" >/dev/null 2>&1 &
+    notify "이미지 준비 완료" "ComfyUI에서 프롬프트 쓰고 Queue 누르세요"
     ;;
   status)
     st=$("$HERE/gpu-mode.sh" status 2>/dev/null)

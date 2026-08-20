@@ -27,7 +27,7 @@ EOF
 declare -A ENTRIES=(
   ["Strix-AI"]="applications-science|menu|로컬 AI 런처 (채팅·이미지 선택)"
   ["Strix-AI-채팅"]="user-available|chat|무검열 LLM 채팅 (글쓰기·번역·코딩)"
-  ["Strix-AI-이미지"]="applications-graphics|image|이미지 생성 (Illustrious/NoobAI/Pony)"
+  ["Strix-AI-이미지"]="applications-graphics|image|이미지 생성 — ComfyUI 열림 (Illustrious/NoobAI/Pony)"
   ["Strix-AI-상태"]="utilities-system-monitor|status|무엇이 켜져 있나 확인"
 )
 
