@@ -51,6 +51,12 @@ class H(BaseHTTPRequestHandler):
             self._send(404, "{}")
 
     def do_GET(self):
+        if self.path == "/presets":
+            pdir = os.path.join(COMFY_INPUT, "presets")
+            files = sorted(f for f in os.listdir(pdir)) if os.path.isdir(pdir) else []
+            files = [f for f in files if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))]
+            self._send(200, json.dumps(files))
+            return
         path = "index.html" if self.path in ("/", "") else self.path.lstrip("/")
         path = path.split("?")[0]
         fp = os.path.join(ROOT, os.path.basename(path))
