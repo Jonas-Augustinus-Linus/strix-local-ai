@@ -67,10 +67,12 @@
       <input type="checkbox" id="autoq" checked style="width:auto;">
       품질 태그 자동 추가 (모델별 최적화 — Pony score 태그 등)
     </label>
-    <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:#ccc;">
-      <input type="checkbox" id="hires" checked style="width:auto;">
-      🔍 고품질 (Hires Fix — 1.5배 정제, 디테일↑, 시간 약 2.5분/장)
-    </label>
+    <label>🔍 고품질 (Hires Fix — 디테일·해상도↑)</label>
+    <select id="hires">
+      <option value="0">끄기 (빠름, ~1분)</option>
+      <option value="1.5" selected>1.5배 정제 (~2.5분, 1248×1824)</option>
+      <option value="2.0">2.0배 초고해상 (~4.5분, 1664×2432)</option>
+    </select>
     <button id="go" onclick="gen()">그리기 ▶</button>
     <div class="bar"><i id="prog"></i></div>
     <div id="status"></div>
@@ -89,9 +91,9 @@ function wf(pos, neg, model, w, h, seed, hires, batch){
     "8":{"class_type":"VAEDecode","inputs":{"samples":["3",0],"vae":["4",2]}},
     "9":{"class_type":"SaveImage","inputs":{"filename_prefix":"simple","images":["8",0]}}
   };
-  if(hires){
-    // 1차 latent를 1.5배 업스케일 후 2차 정제 (denoise 0.5) → 디테일·해상도↑
-    g["10"]={"class_type":"LatentUpscaleBy","inputs":{"samples":["3",0],"upscale_method":"nearest-exact","scale_by":1.5}};
+  if(hires>0){
+    // 1차 latent를 배율만큼 업스케일 후 2차 정제 (denoise 0.5) → 디테일·해상도↑
+    g["10"]={"class_type":"LatentUpscaleBy","inputs":{"samples":["3",0],"upscale_method":"nearest-exact","scale_by":hires}};
     g["11"]={"class_type":"KSampler","inputs":{"seed":seed+1,"steps":16,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":0.5,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["10",0]}};
     g["8"].inputs.samples=["11",0];   // VAEDecode가 2차 결과를 받도록
   }
@@ -132,10 +134,11 @@ async function gen(){
     pos = (QUAL[model]||"") + pos;
     neg = NEG_BASE + (model.includes("Pony") ? "score_1, score_2, score_3, " : "") + neg;
   }
-  const hires = document.getElementById('hires').checked;
+  const hires = Number(document.getElementById('hires').value);
   const batch = Number(document.getElementById('batch').value);
   const body = { prompt: wf(pos, neg, model, w, h, seed, hires, batch) };
-  const est = Math.round((hires?150:55)*batch/60*10)/10; // 대략 예상 분
+  const perImg = hires>=2 ? 265 : hires>=1.5 ? 150 : 55;
+  const est = Math.round(perImg*batch/60*10)/10; // 대략 예상 분
   B.disabled = true; P.style.width='5%'; S.textContent='생성 중… (약 '+est+'분, '+batch+'장)';
   document.getElementById('gallery').innerHTML='';
   try {
@@ -143,7 +146,7 @@ async function gen(){
     const j = await r.json();
     const id = j.prompt_id;
     if(!id){ S.textContent='오류: '+JSON.stringify(j).slice(0,120); B.disabled=false; return; }
-    const maxPoll = 60 + batch*60*(hires?2:1); // 장수·hires에 따라 대기 확장
+    const maxPoll = 60 + batch*Math.ceil(perImg/2)*1.5; // 장수·배율에 따라 대기 확장
     let done=false;
     for(let i=0;i<maxPoll && !done;i++){
       await new Promise(s=>setTimeout(s,2000));
