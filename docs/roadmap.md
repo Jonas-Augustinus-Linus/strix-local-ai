@@ -58,7 +58,8 @@
 - [x] ComfyUI 플래그: `--enable-dynamic-vram --disable-mmap --cache-none --bf16-vae --reserve-vram 2`
 - [x] 이미지 모델: Illustrious XL v2 / NoobAI / Pony (~1–3분/장), Chroma1-HD FP8
 - [x] **영상: Wan 2.2 TI2V-5B fp16 가동 확인 (2026-08-20)** — 890M ROCm에서 480²·2초·20스텝 = **258초**, GTT 피크 21.3G(안전). T2V/I2V 둘 다 동작(`Wan22ImageToVideoLatent` start_image). `simple-video.html` 초간단 페이지 제공. 해상도·길이 상승 시 급격히 느려짐(720p/5초는 수십 분)
-  - [ ] 품질 천장(선택): Wan A14B GGUF Q5 + lightx2v 4-step LoRA (~1–2시간/클립), FastWan 5B(빠른 반복)
+  - 品질 천장(A14B GGUF Q5 + lightx2v)은 **보류**(2026-08-20 결정): 확산 영상은 단일 생성 ≤5초, 분 단위는 5초 조각 I2V 이어붙이기 → 890M에선 ROI 낮음. 5B 스택은 그대로 유지(가끔 짧은 클립용), 영상은 **더 좋은 dGPU 기기 확보 시** 재개
+- **기기 포지셔닝(2026-08-20): 이 머신의 주력은 로컬 LLM + 이미지 생성(+GGUF 양자화 공개). 영상은 되지만 비주력.**
 - [x] LoRA 학습: SDXL LoRA 밤샘 학습, 7B QLoRA 로컬 가능 (Unsloth AMD 공식, `HSA_USE_SVM=0`)
 - 주의: ROCm nightly 회피, Vulkan MES wedge(#5993) 미해결 → GPU 동시 부하 회피
 
