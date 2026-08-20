@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strix 영상 생성</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, sans-serif; background:#14151a; color:#e8e8ea;
+         display:flex; flex-direction:column; align-items:center; padding:24px; gap:14px; }
+  h1 { font-size:20px; margin:4px 0 0; color:#fff; }
+  .sub { color:#888; font-size:13px; margin:0 0 8px; }
+  .panel { width:100%; max-width:560px; display:flex; flex-direction:column; gap:12px; }
+  label { font-size:13px; color:#aaa; margin-bottom:-6px; }
+  textarea, select, input, button { width:100%; padding:12px; border-radius:10px; border:1px solid #333;
+         background:#1e1f26; color:#eee; font-size:15px; font-family:inherit; }
+  textarea { min-height:80px; resize:vertical; }
+  .row { display:flex; gap:10px; } .row > * { flex:1; }
+  button { border:0; background:#4f7cff; color:#fff; font-weight:600; cursor:pointer; }
+  button:disabled { background:#333; color:#777; cursor:wait; }
+  #status { text-align:center; color:#9aa; font-size:14px; min-height:20px; }
+  .bar { height:6px; background:#222; border-radius:3px; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:#4f7cff; transition:width .3s; }
+  video { width:100%; max-width:560px; border-radius:12px; margin-top:6px; }
+  #modebar { width:100%; max-width:560px; padding:12px; border-radius:10px; text-align:center; display:none; }
+  .navlink { color:#4f7cff; font-size:13px; text-decoration:none; }
+</style>
+</head>
+<body>
+  <h1>🎬 Strix 영상 생성</h1>
+  <p class="sub">무검열 로컬 영상 (Wan 2.2 · 이 컴퓨터가 연산) — <a class="navlink" href="/simple-image.html">🖼️ 이미지 생성으로</a></p>
+  <div id="modebar"></div>
+  <div class="panel">
+    <label>어떤 영상을 만들까요? <span style="color:#4f7cff">(영어로 쓰면 더 좋아요)</span></label>
+    <textarea id="prompt" placeholder="예: a white cat walking in a sunny garden, cherry blossoms falling, cinematic, smooth motion">cinematic, smooth motion, </textarea>
+    <button id="tr" onclick="toEng()" style="background:#2a7d5f; padding:10px; font-size:14px;">🇰🇷→🇺🇸 한국어를 영어로 변환</button>
+
+    <label>🖼️ 시작 이미지 (선택 — 있으면 그 이미지가 움직입니다)</label>
+    <div class="row" style="align-items:center;">
+      <button id="imgBtn" onclick="document.getElementById('imgFile').click()" style="background:#5a4a7d; padding:10px; font-size:14px; flex:2;">📎 시작 이미지 올리기</button>
+      <button id="imgClear" onclick="clearImg()" style="background:#444; padding:10px; font-size:14px; flex:1; display:none;">✕ 해제</button>
+    </div>
+    <input type="file" id="imgFile" accept="image/*" style="display:none;" onchange="uploadImg(this)">
+    <div id="imgPreview" style="display:none; color:#8a9; font-size:13px;"></div>
+
+    <div class="row">
+      <div><label>길이</label>
+        <select id="length">
+          <option value="17">1초 (빠름)</option>
+          <option value="33" selected>2초</option>
+          <option value="49">3초</option>
+          <option value="81">5초 (느림)</option>
+        </select>
+      </div>
+      <div><label>화면</label>
+        <select id="size">
+          <option value="480x480">정사각 480 (빠름)</option>
+          <option value="640x480">가로 640×480</option>
+          <option value="480x640">세로 480×640</option>
+          <option value="704x704">고화질 704 (느림)</option>
+          <option value="1280x704">가로 720p (매우 느림)</option>
+        </select>
+      </div>
+    </div>
+    <label>품질(스텝): <b id="stepVal">20</b> <span style="color:#777;font-size:12px;">(높을수록 세밀·느림)</span></label>
+    <input type="range" id="steps" min="10" max="30" step="2" value="20" oninput="document.getElementById('stepVal').textContent=this.value">
+
+    <button id="go" onclick="gen()">🎬 영상 만들기 ▶</button>
+    <div class="bar"><i id="prog"></i></div>
+    <div id="status"></div>
+  </div>
+  <video id="out" controls loop style="display:none;"></video>
+
+<script>
+const H = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8188' : location.protocol+'//'+location.hostname+':8445';
+let startImage = null;
+const S=document.getElementById('status'), P=document.getElementById('prog'), B=document.getElementById('go');
+
+// T2V/I2V 워크플로 (Wan 2.2 TI2V-5B, 검증됨)
+function wf(pos, w, h, length, steps, seed){
+  const g = {
+    "4":{"class_type":"UNETLoader","inputs":{"unet_name":"wan2.2_ti2v_5B_fp16.safetensors","weight_dtype":"default"}},
+    "5":{"class_type":"CLIPLoader","inputs":{"clip_name":"umt5_xxl_fp8_e4m3fn_scaled.safetensors","type":"wan"}},
+    "6":{"class_type":"VAELoader","inputs":{"vae_name":"wan2.2_vae.safetensors"}},
+    "7":{"class_type":"ModelSamplingSD3","inputs":{"model":["4",0],"shift":8.0}},
+    "8":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["5",0]}},
+    "9":{"class_type":"CLIPTextEncode","inputs":{"text":"blurry, distorted, static, low quality, watermark","clip":["5",0]}},
+    "11":{"class_type":"KSampler","inputs":{"seed":seed,"steps":steps,"cfg":5.0,"sampler_name":"euler","scheduler":"normal","denoise":1.0,"model":["7",0],"positive":["8",0],"negative":["9",0],"latent_image":["10",0]}},
+    "12":{"class_type":"VAEDecode","inputs":{"samples":["11",0],"vae":["6",0]}},
+    "13":{"class_type":"VHS_VideoCombine","inputs":{"images":["12",0],"frame_rate":16,"loop_count":0,"filename_prefix":"strixvid","format":"video/h264-mp4","pingpong":false,"save_output":true}}
+  };
+  g["10"]={"class_type":"Wan22ImageToVideoLatent","inputs":{"vae":["6",0],"width":w,"height":h,"length":length,"batch_size":1}};
+  if(startImage){
+    // 이미지→영상: 시작 이미지가 첫 프레임 (5B 공식 경로)
+    g["14"]={"class_type":"LoadImage","inputs":{"image":startImage}};
+    g["10"].inputs.start_image=["14",0];
+  }
+  return g;
+}
+async function uploadImg(inp){
+  const f=inp.files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=async()=>{ S.textContent='시작 이미지 올리는 중…';
+    try{ const j=await (await fetch('/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:rd.result})})).json();
+      startImage=j.filename;
+      document.getElementById('imgPreview').style.display='block';
+      document.getElementById('imgPreview').innerHTML='✓ 이 이미지가 움직입니다: <img src="'+rd.result+'" style="height:56px;border-radius:6px;vertical-align:middle;margin-left:8px;">';
+      document.getElementById('imgClear').style.display='block'; document.getElementById('imgBtn').textContent='📎 다른 이미지로';
+      S.textContent='시작 이미지 준비됨 — 영상 만들기';
+    }catch(e){ S.textContent='업로드 실패'; } };
+  rd.readAsDataURL(f);
+}
+function clearImg(){ startImage=null; document.getElementById('imgPreview').style.display='none'; document.getElementById('imgClear').style.display='none'; document.getElementById('imgBtn').textContent='📎 시작 이미지 올리기'; document.getElementById('imgFile').value=''; S.textContent='시작 이미지 해제됨(텍스트→영상)'; }
+async function toEng(){
+  const box=document.getElementById('prompt'); const t=box.value.trim(); if(!t){S.textContent='먼저 내용을 쓰세요';return;}
+  const btn=document.getElementById('tr'); btn.disabled=true; btn.textContent='변환 중…';
+  try{ const j=await (await fetch('/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})})).json(); if(j.text){box.value=j.text; S.textContent='영어로 변환됨 ✓';} }
+  catch(e){ S.textContent='변환 실패 — 영어로 써도 됩니다'; }
+  btn.disabled=false; btn.textContent='🇰🇷→🇺🇸 한국어를 영어로 변환';
+}
+async function gen(){
+  const [w,h]=document.getElementById('size').value.split('x').map(Number);
+  const length=Number(document.getElementById('length').value);
+  const steps=Number(document.getElementById('steps').value);
+  const seed=Math.floor(Math.random()*1e15);
+  const secs=Math.round((length-1)/16*10)/10;
+  const px=w*h; const estMin=Math.max(2, Math.round(steps*length*px/(480*480*33*20)*4.3));
+  B.disabled=true; P.style.width='4%'; S.textContent='영상 생성 중… 예상 약 '+estMin+'분 ('+secs+'초 클립, '+w+'×'+h+') — 영상은 오래 걸립니다';
+  document.getElementById('out').style.display='none';
+  try{
+    const j=await (await fetch(H+'/prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:wf(document.getElementById('prompt').value,w,h,length,steps,seed)})})).json();
+    const id=j.prompt_id; if(!id){S.textContent='오류: '+JSON.stringify(j).slice(0,160);B.disabled=false;return;}
+    const maxPoll=Math.round(estMin*60/6)+40;
+    let done=false;
+    for(let i=0;i<maxPoll&&!done;i++){
+      await new Promise(s=>setTimeout(s,6000)); P.style.width=Math.min(95,4+i*(88/maxPoll))+'%';
+      const hj=await (await fetch(H+'/history/'+id)).json();
+      if(hj[id]&&hj[id].status){
+        if(hj[id].status.status_str==='error'){ S.textContent='생성 오류 — 화면/길이를 줄여 다시 시도'; done=true; break; }
+        if(hj[id].status.completed){
+          for(const k in hj[id].outputs){ const o=hj[id].outputs[k];
+            const g=(o.gifs||o.videos||[])[0];
+            if(g){ const url=H+'/view?filename='+encodeURIComponent(g.filename)+'&subfolder='+encodeURIComponent(g.subfolder||'')+'&type='+g.type+'&format='+encodeURIComponent(g.format||'video/h264-mp4');
+              const v=document.getElementById('out'); v.src=url; v.style.display='block'; v.play().catch(()=>{}); } }
+          done=true; S.textContent='완료 ✓ (~/사진/strix-ai 에 mp4 저장됨)';
+        }
+      }
+    }
+    P.style.width='100%'; if(!done) S.textContent='시간 초과 — 화면/길이/스텝을 줄여 다시 시도';
+  }catch(e){ S.textContent='연결 오류 — 영상 모드(ComfyUI)가 켜져 있나요?'; }
+  B.disabled=false; setTimeout(()=>P.style.width='0',1000);
+}
+// 영상 생성은 이미지 모드(ComfyUI)가 켜져 있어야 함 — 모드 확인
+async function checkMode(setTo){
+  const bar=document.getElementById('modebar'); const url=setTo?'/mode?to='+setTo:'/mode';
+  if(setTo){bar.innerHTML='전환 중… (최대 1분)';bar.style.background='#3a3d2a';}
+  try{ const j=await (await fetch(url)).json(); bar.style.display='block';
+    if(j.mode==='image'){ bar.style.background='#1e3a2e'; bar.innerHTML='🎬 영상/이미지 모드 (생성 가능)'; }
+    else{ bar.style.background='#3a2828'; bar.innerHTML='💬 지금 채팅 모드라 생성 불가 &nbsp; <button onclick="checkMode(\'image\')" style="width:auto;padding:6px 14px;">🎬 생성 모드로 전환</button>'; }
+  }catch(e){ bar.style.display='none'; }
+}
+window.addEventListener('load',()=>checkMode());
+</script>
+</body>
+</html>
