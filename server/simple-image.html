@@ -22,7 +22,8 @@
          font-size:16px; font-weight:600; cursor:pointer; }
   button:disabled { background:#333; color:#777; cursor:wait; }
   #status { text-align:center; color:#9aa; font-size:14px; min-height:20px; }
-  #out { width:100%; max-width:560px; border-radius:12px; display:none; }
+  #gallery { width:100%; max-width:560px; display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; }
+  .thumb { width:100%; border-radius:12px; }
   .bar { height:6px; background:#222; border-radius:3px; overflow:hidden; }
   .bar > i { display:block; height:100%; width:0; background:#4f7cff; transition:width .2s; }
 </style>
@@ -53,6 +54,14 @@
           <option value="1216x832">가로 (풍경)</option>
         </select>
       </div>
+      <div>
+        <label>장수</label>
+        <select id="batch">
+          <option value="1">1장</option>
+          <option value="2">2장</option>
+          <option value="4">4장</option>
+        </select>
+      </div>
     </div>
     <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:#ccc;">
       <input type="checkbox" id="autoq" checked style="width:auto;">
@@ -60,21 +69,21 @@
     </label>
     <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:#ccc;">
       <input type="checkbox" id="hires" checked style="width:auto;">
-      🔍 고품질 (Hires Fix — 1.5배 정제, 디테일↑, 시간 2배)
+      🔍 고품질 (Hires Fix — 1.5배 정제, 디테일↑, 시간 약 2.5분/장)
     </label>
     <button id="go" onclick="gen()">그리기 ▶</button>
     <div class="bar"><i id="prog"></i></div>
     <div id="status"></div>
   </div>
-  <img id="out">
+  <div id="gallery"></div>
 
 <script>
 const H = 'http://localhost:8188'; // ComfyUI 직접 호출 (CORS 허용됨)
-function wf(pos, neg, model, w, h, seed, hires){
+function wf(pos, neg, model, w, h, seed, hires, batch){
   const g = {
     "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":28,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["5",0]}},
     "4":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":model}},
-    "5":{"class_type":"EmptyLatentImage","inputs":{"width":w,"height":h,"batch_size":1}},
+    "5":{"class_type":"EmptyLatentImage","inputs":{"width":w,"height":h,"batch_size":batch}},
     "6":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["4",1]}},
     "7":{"class_type":"CLIPTextEncode","inputs":{"text":neg,"clip":["4",1]}},
     "8":{"class_type":"VAEDecode","inputs":{"samples":["3",0],"vae":["4",2]}},
@@ -124,30 +133,35 @@ async function gen(){
     neg = NEG_BASE + (model.includes("Pony") ? "score_1, score_2, score_3, " : "") + neg;
   }
   const hires = document.getElementById('hires').checked;
-  const body = { prompt: wf(pos, neg, model, w, h, seed, hires) };
-  B.disabled = true; P.style.width='5%'; S.textContent='생성 중… (약 1분)';
+  const batch = Number(document.getElementById('batch').value);
+  const body = { prompt: wf(pos, neg, model, w, h, seed, hires, batch) };
+  const est = Math.round((hires?150:55)*batch/60*10)/10; // 대략 예상 분
+  B.disabled = true; P.style.width='5%'; S.textContent='생성 중… (약 '+est+'분, '+batch+'장)';
+  document.getElementById('gallery').innerHTML='';
   try {
     const r = await fetch(H+'/prompt', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     const j = await r.json();
     const id = j.prompt_id;
     if(!id){ S.textContent='오류: '+JSON.stringify(j).slice(0,120); B.disabled=false; return; }
-    // 진행 폴링
+    const maxPoll = 60 + batch*60*(hires?2:1); // 장수·hires에 따라 대기 확장
     let done=false;
-    for(let i=0;i<120 && !done;i++){
+    for(let i=0;i<maxPoll && !done;i++){
       await new Promise(s=>setTimeout(s,2000));
-      P.style.width = Math.min(90, 5+i*4)+'%';
+      P.style.width = Math.min(90, 5+i*(80/maxPoll))+'%';
       const hr = await fetch(H+'/history/'+id); const hj = await hr.json();
       if(hj[id] && hj[id].status && hj[id].status.completed){
-        const outs = hj[id].outputs;
+        const outs = hj[id].outputs; const G = document.getElementById('gallery'); G.innerHTML='';
+        let n=0;
         for(const k in outs){ if(outs[k].images){
-          const im = outs[k].images[0];
-          const url = H+'/view?filename='+encodeURIComponent(im.filename)+'&subfolder='+encodeURIComponent(im.subfolder||'')+'&type='+im.type;
-          const el = document.getElementById('out'); el.src=url; el.style.display='block';
-          done=true; break;
+          for(const im of outs[k].images){
+            const url = H+'/view?filename='+encodeURIComponent(im.filename)+'&subfolder='+encodeURIComponent(im.subfolder||'')+'&type='+im.type;
+            const img = document.createElement('img'); img.src=url; img.className='thumb'; G.appendChild(img); n++;
+          }
         }}
+        done=true; S.textContent='완료 ✓ '+n+'장 (~/사진/strix-ai 에 저장됨)';
       }
     }
-    P.style.width='100%'; S.textContent = done?'완료 ✓':'시간 초과 — 다시 시도';
+    P.style.width='100%'; if(!done) S.textContent='시간 초과 — 장수를 줄이거나 다시 시도';
   } catch(e){ S.textContent='연결 오류 — ComfyUI(8188)가 켜져 있나요?'; }
   B.disabled=false; setTimeout(()=>P.style.width='0',800);
 }
