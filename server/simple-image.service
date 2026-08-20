@@ -4,7 +4,7 @@ Description=Strix 초간단 이미지 생성 페이지 (localhost:8189 → Comfy
 [Service]
 Type=simple
 WorkingDirectory=/home/amd-ai/strix-local-ai/server
-ExecStart=/usr/bin/python3 -m http.server 8189 --bind 127.0.0.1
+ExecStart=/home/amd-ai/venvs/comfy/bin/python /home/amd-ai/strix-local-ai/server/image-server.py
 Restart=always
 RestartSec=5
 

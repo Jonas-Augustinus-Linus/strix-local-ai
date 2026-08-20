@@ -31,8 +31,9 @@
   <h1>🎨 Strix 이미지 생성</h1>
   <p class="sub">무검열 로컬 이미지 (Illustrious / NoobAI / Pony)</p>
   <div class="panel">
-    <label>무엇을 그릴까요? <span style="color:#4f7cff">(영어 태그로 쓰면 훨씬 좋아요!)</span></label>
-    <textarea id="prompt" placeholder="영어 태그를 쉼표로 나열: 1girl, long hair, sunset, ocean, waves, scenery, detailed"></textarea>
+    <label>무엇을 그릴까요? <span style="color:#4f7cff">(한국어로 써도 OK — 아래 변환 버튼)</span></label>
+    <textarea id="prompt" placeholder="한국어: 흰머리 소녀, 기모노, 벚꽃 정원   또는   영어 태그: 1girl, white hair, kimono, cherry blossoms"></textarea>
+    <button id="tr" onclick="toEng()" style="background:#2a7d5f; padding:10px; font-size:14px;">🇰🇷→🇺🇸 한국어를 영어 태그로 변환</button>
     <label>빼고 싶은 것 (선택 — 비워두면 자동)</label>
     <input id="neg" value="">
     <div class="row">
@@ -79,6 +80,20 @@ function wf(pos, neg, model, w, h, seed){
 const S = document.getElementById('status');
 const P = document.getElementById('prog');
 const B = document.getElementById('go');
+// 한국어 → 영어 변환 (오프라인 Argos, 8189 서버)
+async function toEng(){
+  const box = document.getElementById('prompt');
+  const t = box.value.trim();
+  if(!t){ S.textContent='먼저 그릴 내용을 쓰세요'; return; }
+  const btn = document.getElementById('tr');
+  btn.disabled = true; btn.textContent = '변환 중…';
+  try {
+    const r = await fetch('/translate', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:t})});
+    const j = await r.json();
+    if(j.text){ box.value = j.text; S.textContent = '영어로 변환됨 ✓ (필요하면 태그를 다듬으세요)'; }
+  } catch(e){ S.textContent = '변환 실패 — 그냥 영어로 써도 됩니다'; }
+  btn.disabled = false; btn.textContent = '🇰🇷→🇺🇸 한국어를 영어 태그로 변환';
+}
 // 모델별 품질 태그 자동 삽입 (이게 품질의 핵심 — 특히 Pony는 score 태그 필수)
 const QUAL = {
   "Illustrious-XL-v2.0.safetensors": "masterpiece, best quality, amazing quality, very aesthetic, absurdres, ",
