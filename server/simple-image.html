@@ -31,10 +31,10 @@
   <h1>🎨 Strix 이미지 생성</h1>
   <p class="sub">무검열 로컬 이미지 (Illustrious / NoobAI / Pony)</p>
   <div class="panel">
-    <label>무엇을 그릴까요?</label>
-    <textarea id="prompt" placeholder="예: 노을 지는 바다, 파도, 아름다운 하늘, 고화질">masterpiece, best quality, </textarea>
-    <label>빼고 싶은 것 (선택)</label>
-    <input id="neg" value="lowres, bad quality, worst quality, watermark, text">
+    <label>무엇을 그릴까요? <span style="color:#4f7cff">(영어 태그로 쓰면 훨씬 좋아요!)</span></label>
+    <textarea id="prompt" placeholder="영어 태그를 쉼표로 나열: 1girl, long hair, sunset, ocean, waves, scenery, detailed"></textarea>
+    <label>빼고 싶은 것 (선택 — 비워두면 자동)</label>
+    <input id="neg" value="">
     <div class="row">
       <div>
         <label>모델</label>
@@ -53,6 +53,10 @@
         </select>
       </div>
     </div>
+    <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:#ccc;">
+      <input type="checkbox" id="autoq" checked style="width:auto;">
+      품질 태그 자동 추가 (모델별 최적화 — Pony score 태그 등)
+    </label>
     <button id="go" onclick="gen()">그리기 ▶</button>
     <div class="bar"><i id="prog"></i></div>
     <div id="status"></div>
@@ -63,7 +67,7 @@
 const H = 'http://localhost:8188'; // ComfyUI 직접 호출 (CORS 허용됨)
 function wf(pos, neg, model, w, h, seed){
   return {
-    "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":24,"cfg":5.5,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["5",0]}},
+    "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":28,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["5",0]}},
     "4":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":model}},
     "5":{"class_type":"EmptyLatentImage","inputs":{"width":w,"height":h,"batch_size":1}},
     "6":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["4",1]}},
@@ -75,13 +79,25 @@ function wf(pos, neg, model, w, h, seed){
 const S = document.getElementById('status');
 const P = document.getElementById('prog');
 const B = document.getElementById('go');
+// 모델별 품질 태그 자동 삽입 (이게 품질의 핵심 — 특히 Pony는 score 태그 필수)
+const QUAL = {
+  "Illustrious-XL-v2.0.safetensors": "masterpiece, best quality, amazing quality, very aesthetic, absurdres, ",
+  "NoobAI-XL-v1.1.safetensors": "masterpiece, best quality, newest, very aesthetic, absurdres, ",
+  "Pony-Diffusion-v6-XL.safetensors": "score_9, score_8_up, score_7_up, source_anime, masterpiece, best quality, "
+};
+const NEG_BASE = "lowres, bad quality, worst quality, jpeg artifacts, blurry, watermark, signature, text, bad anatomy, bad hands, extra digits, missing fingers, ";
 async function gen(){
   const [w,h] = document.getElementById('size').value.split('x').map(Number);
   const seed = Math.floor(Math.random()*1e15);
-  const body = { prompt: wf(
-    document.getElementById('prompt').value,
-    document.getElementById('neg').value,
-    document.getElementById('model').value, w, h, seed) };
+  const model = document.getElementById('model').value;
+  const auto = document.getElementById('autoq').checked;
+  let pos = document.getElementById('prompt').value;
+  let neg = document.getElementById('neg').value;
+  if(auto){
+    pos = (QUAL[model]||"") + pos;
+    neg = NEG_BASE + (model.includes("Pony") ? "score_1, score_2, score_3, " : "") + neg;
+  }
+  const body = { prompt: wf(pos, neg, model, w, h, seed) };
   B.disabled = true; P.style.width='5%'; S.textContent='생성 중… (약 1분)';
   try {
     const r = await fetch(H+'/prompt', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
