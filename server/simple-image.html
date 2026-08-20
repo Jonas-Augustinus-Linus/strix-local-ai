@@ -58,6 +58,10 @@
       <input type="checkbox" id="autoq" checked style="width:auto;">
       품질 태그 자동 추가 (모델별 최적화 — Pony score 태그 등)
     </label>
+    <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:#ccc;">
+      <input type="checkbox" id="hires" checked style="width:auto;">
+      🔍 고품질 (Hires Fix — 1.5배 정제, 디테일↑, 시간 2배)
+    </label>
     <button id="go" onclick="gen()">그리기 ▶</button>
     <div class="bar"><i id="prog"></i></div>
     <div id="status"></div>
@@ -66,8 +70,8 @@
 
 <script>
 const H = 'http://localhost:8188'; // ComfyUI 직접 호출 (CORS 허용됨)
-function wf(pos, neg, model, w, h, seed){
-  return {
+function wf(pos, neg, model, w, h, seed, hires){
+  const g = {
     "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":28,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["5",0]}},
     "4":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":model}},
     "5":{"class_type":"EmptyLatentImage","inputs":{"width":w,"height":h,"batch_size":1}},
@@ -76,6 +80,13 @@ function wf(pos, neg, model, w, h, seed){
     "8":{"class_type":"VAEDecode","inputs":{"samples":["3",0],"vae":["4",2]}},
     "9":{"class_type":"SaveImage","inputs":{"filename_prefix":"simple","images":["8",0]}}
   };
+  if(hires){
+    // 1차 latent를 1.5배 업스케일 후 2차 정제 (denoise 0.5) → 디테일·해상도↑
+    g["10"]={"class_type":"LatentUpscaleBy","inputs":{"samples":["3",0],"upscale_method":"nearest-exact","scale_by":1.5}};
+    g["11"]={"class_type":"KSampler","inputs":{"seed":seed+1,"steps":16,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":0.5,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["10",0]}};
+    g["8"].inputs.samples=["11",0];   // VAEDecode가 2차 결과를 받도록
+  }
+  return g;
 }
 const S = document.getElementById('status');
 const P = document.getElementById('prog');
@@ -112,7 +123,8 @@ async function gen(){
     pos = (QUAL[model]||"") + pos;
     neg = NEG_BASE + (model.includes("Pony") ? "score_1, score_2, score_3, " : "") + neg;
   }
-  const body = { prompt: wf(pos, neg, model, w, h, seed) };
+  const hires = document.getElementById('hires').checked;
+  const body = { prompt: wf(pos, neg, model, w, h, seed, hires) };
   B.disabled = true; P.style.width='5%'; S.textContent='생성 중… (약 1분)';
   try {
     const r = await fetch(H+'/prompt', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
