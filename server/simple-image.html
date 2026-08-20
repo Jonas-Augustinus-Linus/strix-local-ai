@@ -97,7 +97,10 @@
   <div id="gallery"></div>
 
 <script>
-const H = 'http://localhost:8188'; // ComfyUI 직접 호출 (CORS 허용됨)
+// ComfyUI 주소 — 로컬이면 localhost:8188, 원격(tailnet)이면 같은 호스트의 8445 포트
+const H = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8188'
+  : location.protocol + '//' + location.hostname + ':8445';
 let poseImage = null; // 업로드된 참조 이미지 파일명 (ComfyUI input)
 let cnMode = "off";   // off | pose | canny
 let cnStrength = 1.0;
