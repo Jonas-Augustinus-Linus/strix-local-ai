@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Strix 이미지 페이지 서버 (8189): 정적 파일 + 한→영 오프라인 번역 엔드포인트
 # 번역은 Argos Translate (CPU, 오프라인) — 이미지 모드에서 LLM이 꺼져도 작동
-import json, os, base64, time
+import json, os, base64, time, subprocess, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -51,6 +51,20 @@ class H(BaseHTTPRequestHandler):
             self._send(404, "{}")
 
     def do_GET(self):
+        if self.path.startswith("/mode"):
+            # GPU 모드 조회/전환 — 맥 등 원격에서 SSH 없이 채팅↔이미지 전환
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            to = q.get("to", [""])[0]
+            if to == "image":
+                subprocess.run(["systemctl", "--user", "start", "comfyui"], timeout=10)
+            elif to == "chat":
+                subprocess.run(["systemctl", "--user", "stop", "comfyui"], timeout=15)
+            def active(u):
+                return subprocess.run(["systemctl","--user","is-active",u],
+                    capture_output=True, text=True).stdout.strip() == "active"
+            mode = "image" if active("comfyui") else ("chat" if active("llama-router") else "off")
+            self._send(200, json.dumps({"mode": mode}))
+            return
         if self.path == "/presets":
             pdir = os.path.join(COMFY_INPUT, "presets")
             files = sorted(f for f in os.listdir(pdir)) if os.path.isdir(pdir) else []

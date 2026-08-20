@@ -31,6 +31,7 @@
 <body>
   <h1>🎨 Strix 이미지 생성</h1>
   <p class="sub">무검열 로컬 이미지 (Illustrious / NoobAI / Pony)</p>
+  <div id="modebar" style="width:100%; max-width:560px; display:none; padding:12px; border-radius:10px; margin-bottom:4px; text-align:center;"></div>
   <div class="panel">
     <label>무엇을 그릴까요? <span style="color:#4f7cff">(한국어로 써도 OK — 아래 변환 버튼)</span></label>
     <textarea id="prompt" placeholder="한국어: 흰머리 소녀, 기모노, 벚꽃 정원   또는   영어 태그: 1girl, white hair, kimono, cherry blossoms"></textarea>
@@ -104,6 +105,24 @@ const H = (location.hostname === 'localhost' || location.hostname === '127.0.0.1
 let poseImage = null; // 업로드된 참조 이미지 파일명 (ComfyUI input)
 let cnMode = "off";   // off | pose | canny
 let cnStrength = 1.0;
+// GPU 모드 확인/전환 (맥 등 원격에서 SSH 없이) — 페이지 로드 시 자동
+async function checkMode(setTo){
+  const bar = document.getElementById('modebar');
+  const url = setTo ? '/mode?to='+setTo : '/mode';
+  if(setTo){ bar.innerHTML='전환 중… (최대 1분)'; bar.style.background='#3a3d2a'; }
+  try {
+    const r = await fetch(url); const j = await r.json();
+    bar.style.display='block';
+    if(j.mode==='image'){
+      bar.style.background='#1e3a2e';
+      bar.innerHTML='🖼️ 이미지 모드 (생성 가능) &nbsp; <a href="#" onclick="checkMode(\'chat\');return false" style="color:#8ab;">→ 채팅 모드로</a>';
+    } else {
+      bar.style.background='#3a2828';
+      bar.innerHTML='💬 지금 채팅 모드라 이미지 생성이 안 됩니다 &nbsp; <button onclick="checkMode(\'image\')" style="width:auto;padding:6px 14px;background:#4f7cff;">🖼️ 이미지 모드로 전환</button>';
+    }
+  } catch(e){ bar.style.display='none'; }
+}
+window.addEventListener('load', ()=>checkMode());
 function wf(pos, neg, model, w, h, seed, hires, batch){
   const useCn = poseImage && cnMode!=="off";
   const posSrc = useCn ? ["20",0] : ["6",0];
