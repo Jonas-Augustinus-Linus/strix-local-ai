@@ -65,3 +65,20 @@ comfyui.service(Conflicts=llama-router)의 ExecStopPost에서 `systemctl --user 
 llama-router`를 블로킹으로 호출하면: router 시작 잡은 comfyui 정지 완료를 기다리고,
 comfyui 정지는 ExecStopPost 종료를 기다림 → 상호 대기 → TimeoutStopSec 후 SIGKILL,
 유닛은 failed(timeout). **`--no-block` 필수.** 증상: stop이 90초 걸리고 Result=timeout.
+
+## G10. FLUX(GGUF)는 SDXL과 완전히 다른 그래프 — cfg·scheduler·VAE·latent 전부 주의 (2026-08-20 실측)
+
+890M에서 FLUX.1-dev abliterated GGUF Q6_K 실측: 1024²·20스텝 505초, GTT 피크 13.8G(여유 큼).
+단, SDXL 습관대로 짜면 깨진다:
+
+- **cfg는 반드시 1.0** — FLUX-dev는 guidance-distilled라 real CFG(>1)를 쓰면 스텝당 연산 2배 +
+  분포가 깨진다. 강도는 `FluxGuidance` 노드(≈3.5)로만 준다. 네거티브는 cfg=1에서 무시됨(빈 문자열).
+- **scheduler=simple**(또는 beta/sgm_uniform), **euler**. SDXL의 karras/euler_ancestral 쓰면 품질 붕괴.
+- **VAE는 bf16**(`--bf16-vae`). FLUX 16채널 VAE를 fp16으로 디코드하면 오버플로 → 검은/NaN 이미지.
+- **latent은 `EmptySD3LatentImage`(16채널)**. SDXL의 `EmptyLatentImage`(4채널) 아님.
+- **텍스트 인코더**: `DualCLIPLoader`(t5xxl_fp8 + clip_l, type=flux). Wan용 **umt5는 재사용 불가**
+  (다른 모델). Chroma가 쓰던 t5xxl은 공유 가능. `clip missing: text_projection.weight` 경고는 무해.
+- **`HSA_OVERRIDE_GFX_VERSION` 설정 금지** — gfx1150은 ROCm 7.14/torch 2.11에서 native 타깃이라
+  11.0.0 오버라이드가 오히려 잘못된 커널을 고를 수 있다. 기존 `--enable-dynamic-vram`로 충분.
+- **모델 특성**: abliterated 판은 무검열 방향으로 과편향 → 옷 지시("wearing ○○")를 무시하고 누드로
+  갈 때가 있다. SFW는 "fully clothed" 강조 또는 SDXL 사용.

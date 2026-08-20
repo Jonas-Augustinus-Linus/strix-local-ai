@@ -66,7 +66,7 @@ sudo apt install -y libvulkan-dev glslc libcurl4-openssl-dev
 
 - **로컬 LLM 채팅** — llama-router 다중 모델 상시 서버 (OpenAI 호환 API)
 - **GGUF 양자화 파이프라인** — HF → GGUF → imatrix → 업로드, 한국어 보정 코퍼스 공개
-- **로컬 이미지 생성** — SDXL 5종 (Animagine · Illustrious · NoobAI · Pony · RealVis) + Chroma, ComfyUI 백엔드 + 초간단 웹 페이지 (대량 100/1000장 배치 · Ultimate SD Upscale 4K)
+- **로컬 이미지 생성** — SDXL 5종 (Animagine · Illustrious · NoobAI · Pony · RealVis) + **FLUX.1-dev Abliterated(무검열 GGUF)** + Chroma, ComfyUI 백엔드 + 초간단 웹 페이지 (대량 100/1000장 배치 · Ultimate SD Upscale 4K)
 - **로컬 영상 생성** — Wan 2.2 TI2V-5B (텍스트→영상 · 이미지→영상), 890M ROCm 실측 480²·2초 258초, 초간단 페이지
 - **ControlNet** — 자세(OpenPose) · 구도(Canny Union) 참조 이미지 기반 제어
 - **LoRA 훈련** — sd-scripts 기반 학습 스크립트
