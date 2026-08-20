@@ -99,7 +99,19 @@ X에서 본 "관절 사진 → 그 자세로", "참조 사진 → 같은 구도�
 - **너무 느림/멈춤** → 크기를 1024로, batch를 1로 낮추기
 - **채팅이 안 됨** → 지금 이미지 모드라 그럼. `gpu-mode chat`으로 전환
 
+## 8. 영상 만들기 (Wan 2.2 5B)
+
+초간단 페이지 `localhost:8189/simple-video.html` (이미지 페이지 상단 "🎬 영상 생성으로"로도 이동).
+
+- **텍스트→영상**: 프롬프트만 → 짧은 클립
+- **이미지→영상(I2V)**: 시작 이미지를 올리면 그 그림이 움직임
+- 길이 1~5초, 화면 480²~720p, 스텝 슬라이더
+- **속도(890M 실측)**: 480²·2초·20스텝 ≈ **4.3분**. 해상도·길이를 올리면 급격히 느려짐(720p·5초는 수십 분) → 처음엔 480²·2초로 감 잡기
+- 저장: `~/비디오/strix-ai` (mp4)
+- 영상도 890M을 단독으로 쓰므로 **생성 모드** 필요(채팅과 동시 불가). 페이지 상단 버튼으로 전환
+- ComfyUI 본체에서 직접 조립하려면: `UNETLoader(wan2.2_ti2v_5B_fp16)` → `ModelSamplingSD3(shift 8)` → `KSampler(20스텝, cfg 5, euler)`, `CLIPLoader(umt5, type=wan)`, `VAELoader(wan2.2_vae)`, `Wan22ImageToVideoLatent`(I2V면 start_image 연결) → `VAEDecode` → `VHS_VideoCombine(frame_rate 16, h264-mp4)`
+
 ---
 
-*간단하게 쓰고 싶으면 `localhost:8189/simple-image.html` (프롬프트 1칸 + 버튼)도
-그대로 있습니다. ComfyUI 본체는 더 세밀한 조정과 ControlNet 등 고급 기능용입니다.*
+*간단하게 쓰고 싶으면 `localhost:8189/simple-image.html`(이미지) · `simple-video.html`(영상)
+을 그대로 쓰면 됩니다. ComfyUI 본체는 더 세밀한 조정과 ControlNet 등 고급 기능용입니다.*

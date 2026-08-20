@@ -66,7 +66,8 @@ sudo apt install -y libvulkan-dev glslc libcurl4-openssl-dev
 
 - **로컬 LLM 채팅** — llama-router 다중 모델 상시 서버 (OpenAI 호환 API)
 - **GGUF 양자화 파이프라인** — HF → GGUF → imatrix → 업로드, 한국어 보정 코퍼스 공개
-- **로컬 이미지 생성** — SDXL 5종 (Animagine · Illustrious · NoobAI · Pony · RealVis) + Chroma, ComfyUI 백엔드 + 초간단 웹 페이지
+- **로컬 이미지 생성** — SDXL 5종 (Animagine · Illustrious · NoobAI · Pony · RealVis) + Chroma, ComfyUI 백엔드 + 초간단 웹 페이지 (대량 100/1000장 배치 · Ultimate SD Upscale 4K)
+- **로컬 영상 생성** — Wan 2.2 TI2V-5B (텍스트→영상 · 이미지→영상), 890M ROCm 실측 480²·2초 258초, 초간단 페이지
 - **ControlNet** — 자세(OpenPose) · 구도(Canny Union) 참조 이미지 기반 제어
 - **LoRA 훈련** — sd-scripts 기반 학습 스크립트
 
@@ -83,5 +84,5 @@ sudo apt install -y libvulkan-dev glslc libcurl4-openssl-dev
 
 1. **Phase 1 — 추론 기반** ✅: llama.cpp Vulkan 빌드, 4B~24B 모델 벤치마크, 상시 서버
 2. **Phase 2 — 양자화 기여** ✅: HF → GGUF 변환 파이프라인, imatrix 양자화, HF 업로드 자동화
-3. **Phase 3 — 이미지/영상** ✅: ComfyUI + SDXL 5종 · Chroma, ControlNet(자세/구도), LoRA 훈련 가동 중 (영상은 진행 중)
+3. **Phase 3 — 이미지/영상** ✅: ComfyUI + SDXL 5종 · Chroma, ControlNet(자세/구도), LoRA 훈련, 대량 배치·4K 업스케일, **Wan 2.2 5B 영상(T2V/I2V) 가동**
 4. **Phase 4 — NPU**: XDNA2 오프로딩 실험 (ryzen-npu-linux 연계)

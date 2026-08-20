@@ -57,7 +57,8 @@
   `pip install --index-url https://repo.amd.com/rocm/whl-multi-arch/ "torch[device-gfx1150]==2.12.0+rocm7.14.0"`
 - [x] ComfyUI 플래그: `--enable-dynamic-vram --disable-mmap --cache-none --bf16-vae --reserve-vram 2`
 - [x] 이미지 모델: Illustrious XL v2 / NoobAI / Pony (~1–3분/장), Chroma1-HD FP8
-- [ ] 영상: Wan 2.2 5B / HunyuanVideo 1.5 Q4 + 4-step LoRA (~15–45분/5초 480p), Wan A14B ~1–2시간
+- [x] **영상: Wan 2.2 TI2V-5B fp16 가동 확인 (2026-08-20)** — 890M ROCm에서 480²·2초·20스텝 = **258초**, GTT 피크 21.3G(안전). T2V/I2V 둘 다 동작(`Wan22ImageToVideoLatent` start_image). `simple-video.html` 초간단 페이지 제공. 해상도·길이 상승 시 급격히 느려짐(720p/5초는 수십 분)
+  - [ ] 품질 천장(선택): Wan A14B GGUF Q5 + lightx2v 4-step LoRA (~1–2시간/클립), FastWan 5B(빠른 반복)
 - [x] LoRA 학습: SDXL LoRA 밤샘 학습, 7B QLoRA 로컬 가능 (Unsloth AMD 공식, `HSA_USE_SVM=0`)
 - 주의: ROCm nightly 회피, Vulkan MES wedge(#5993) 미해결 → GPU 동시 부하 회피
 
