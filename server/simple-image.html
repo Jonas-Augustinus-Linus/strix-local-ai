@@ -42,9 +42,11 @@
       <div>
         <label>모델</label>
         <select id="model">
+          <option>Animagine-XL-4.0.safetensors</option>
           <option>Illustrious-XL-v2.0.safetensors</option>
           <option>NoobAI-XL-v1.1.safetensors</option>
           <option>Pony-Diffusion-v6-XL.safetensors</option>
+          <option>RealVisXL-V5.safetensors</option>
         </select>
       </div>
       <div>
@@ -228,11 +230,15 @@ async function toEng(){
 }
 // 모델별 품질 태그 자동 삽입 (이게 품질의 핵심 — 특히 Pony는 score 태그 필수)
 const QUAL = {
+  "Animagine-XL-4.0.safetensors": "masterpiece, high score, great score, absurdres, very aesthetic, ",
   "Illustrious-XL-v2.0.safetensors": "masterpiece, best quality, amazing quality, very aesthetic, absurdres, ",
   "NoobAI-XL-v1.1.safetensors": "masterpiece, best quality, newest, very aesthetic, absurdres, ",
-  "Pony-Diffusion-v6-XL.safetensors": "score_9, score_8_up, score_7_up, source_anime, masterpiece, best quality, "
+  "Pony-Diffusion-v6-XL.safetensors": "score_9, score_8_up, score_7_up, source_anime, masterpiece, best quality, ",
+  "RealVisXL-V5.safetensors": "photorealistic, RAW photo, best quality, highly detailed, 8k uhd, sharp focus, "
 };
-const NEG_BASE = "lowres, bad quality, worst quality, jpeg artifacts, blurry, watermark, signature, text, bad anatomy, bad hands, extra digits, missing fingers, ";
+// 실사 모델은 애니 네거티브(anime artifacts)와 다름
+const NEG_ANIME = "lowres, bad quality, worst quality, jpeg artifacts, blurry, watermark, signature, text, bad anatomy, bad hands, extra digits, missing fingers, ";
+const NEG_REAL = "lowres, worst quality, low quality, blurry, watermark, text, bad anatomy, bad hands, extra digits, deformed, cartoon, anime, 3d render, ";
 async function gen(){
   const [w,h] = document.getElementById('size').value.split('x').map(Number);
   const seed = Math.floor(Math.random()*1e15);
@@ -242,7 +248,8 @@ async function gen(){
   let neg = document.getElementById('neg').value;
   if(auto){
     pos = (QUAL[model]||"") + pos;
-    neg = NEG_BASE + (model.includes("Pony") ? "score_1, score_2, score_3, " : "") + neg;
+    const negBase = model.includes("RealVis") ? NEG_REAL : NEG_ANIME;
+    neg = negBase + (model.includes("Pony") ? "score_1, score_2, score_3, " : "") + neg;
   }
   const hires = Number(document.getElementById('hires').value);
   const batch = Number(document.getElementById('batch').value);
