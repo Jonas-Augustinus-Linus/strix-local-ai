@@ -73,6 +73,13 @@
       <option value="1.5" selected>1.5배 정제 (~2.5분, 1248×1824)</option>
       <option value="2.0">2.0배 초고해상 (~4.5분, 1664×2432)</option>
     </select>
+    <label style="margin-top:6px;">🕺 포즈 참조 (선택 — 사진 올리면 그 자세로)</label>
+    <div class="row" style="align-items:center;">
+      <button id="poseBtn" onclick="document.getElementById('poseFile').click()" style="background:#5a4a7d; padding:10px; font-size:14px; flex:2;">📎 참조 사진 올리기</button>
+      <button id="poseClear" onclick="clearPose()" style="background:#444; padding:10px; font-size:14px; flex:1; display:none;">✕ 해제</button>
+    </div>
+    <input type="file" id="poseFile" accept="image/*" style="display:none;" onchange="uploadPose(this)">
+    <div id="posePreview" style="display:none; color:#8a9; font-size:13px;"></div>
     <button id="go" onclick="gen()">그리기 ▶</button>
     <div class="bar"><i id="prog"></i></div>
     <div id="status"></div>
@@ -81,9 +88,13 @@
 
 <script>
 const H = 'http://localhost:8188'; // ComfyUI 직접 호출 (CORS 허용됨)
+let poseImage = null; // 업로드된 참조 이미지 파일명 (ComfyUI input)
 function wf(pos, neg, model, w, h, seed, hires, batch){
+  // KSampler의 positive/negative 소스 — 포즈 참조 있으면 ControlNet 경유
+  const posSrc = poseImage ? ["20",0] : ["6",0];
+  const negSrc = poseImage ? ["20",1] : ["7",0];
   const g = {
-    "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":28,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["5",0]}},
+    "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":28,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":["4",0],"positive":posSrc,"negative":negSrc,"latent_image":["5",0]}},
     "4":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":model}},
     "5":{"class_type":"EmptyLatentImage","inputs":{"width":w,"height":h,"batch_size":batch}},
     "6":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["4",1]}},
@@ -91,10 +102,17 @@ function wf(pos, neg, model, w, h, seed, hires, batch){
     "8":{"class_type":"VAEDecode","inputs":{"samples":["3",0],"vae":["4",2]}},
     "9":{"class_type":"SaveImage","inputs":{"filename_prefix":"simple","images":["8",0]}}
   };
+  if(poseImage){
+    // 참조 사진 → OpenPose 관절 추출 → 전용 ControlNet으로 그 자세 적용
+    g["16"]={"class_type":"LoadImage","inputs":{"image":poseImage}};
+    g["17"]={"class_type":"OpenposePreprocessor","inputs":{"image":["16",0],"detect_hand":"enable","detect_body":"enable","detect_face":"enable","resolution":1024}};
+    g["18"]={"class_type":"ControlNetLoader","inputs":{"control_net_name":"controlnet-openpose-sdxl.safetensors"}};
+    g["20"]={"class_type":"ControlNetApplyAdvanced","inputs":{"positive":["6",0],"negative":["7",0],"control_net":["18",0],"image":["17",0],"strength":1.0,"start_percent":0.0,"end_percent":1.0,"vae":["4",2]}};
+  }
   if(hires>0){
     // 1차 latent를 배율만큼 업스케일 후 2차 정제 (denoise 0.5) → 디테일·해상도↑
     g["10"]={"class_type":"LatentUpscaleBy","inputs":{"samples":["3",0],"upscale_method":"nearest-exact","scale_by":hires}};
-    g["11"]={"class_type":"KSampler","inputs":{"seed":seed+1,"steps":16,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":0.5,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["10",0]}};
+    g["11"]={"class_type":"KSampler","inputs":{"seed":seed+1,"steps":16,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":0.5,"model":["4",0],"positive":posSrc,"negative":negSrc,"latent_image":["10",0]}};
     g["8"].inputs.samples=["11",0];   // VAEDecode가 2차 결과를 받도록
   }
   return g;
@@ -102,6 +120,33 @@ function wf(pos, neg, model, w, h, seed, hires, batch){
 const S = document.getElementById('status');
 const P = document.getElementById('prog');
 const B = document.getElementById('go');
+// 포즈 참조 이미지 업로드 (8189 서버 → ComfyUI input)
+async function uploadPose(inp){
+  const f = inp.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = async () => {
+    S.textContent = '참조 사진 올리는 중…';
+    try {
+      const r = await fetch('/upload', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({image: rd.result})});
+      const j = await r.json();
+      poseImage = j.filename;
+      document.getElementById('posePreview').style.display='block';
+      document.getElementById('posePreview').innerHTML = '✓ 이 자세로 그립니다: <img src="'+rd.result+'" style="height:60px;border-radius:6px;vertical-align:middle;margin-left:8px;">';
+      document.getElementById('poseClear').style.display='block';
+      document.getElementById('poseBtn').textContent = '📎 다른 사진으로 교체';
+      S.textContent = '참조 자세 준비됨 — 프롬프트 쓰고 그리기';
+    } catch(e){ S.textContent = '업로드 실패'; }
+  };
+  rd.readAsDataURL(f);
+}
+function clearPose(){
+  poseImage = null;
+  document.getElementById('posePreview').style.display='none';
+  document.getElementById('poseClear').style.display='none';
+  document.getElementById('poseBtn').textContent = '📎 참조 사진 올리기';
+  document.getElementById('poseFile').value='';
+  S.textContent = '포즈 참조 해제됨';
+}
 // 한국어 → 영어 변환 (오프라인 Argos, 8189 서버)
 async function toEng(){
   const box = document.getElementById('prompt');
@@ -137,7 +182,7 @@ async function gen(){
   const hires = Number(document.getElementById('hires').value);
   const batch = Number(document.getElementById('batch').value);
   const body = { prompt: wf(pos, neg, model, w, h, seed, hires, batch) };
-  const perImg = hires>=2 ? 265 : hires>=1.5 ? 150 : 55;
+  const perImg = (hires>=2 ? 265 : hires>=1.5 ? 150 : 55) + (poseImage?40:0);
   const est = Math.round(perImg*batch/60*10)/10; // 대략 예상 분
   B.disabled = true; P.style.width='5%'; S.textContent='생성 중… (약 '+est+'분, '+batch+'장)';
   document.getElementById('gallery').innerHTML='';

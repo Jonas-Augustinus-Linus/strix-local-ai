@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # Strix 이미지 페이지 서버 (8189): 정적 파일 + 한→영 오프라인 번역 엔드포인트
 # 번역은 Argos Translate (CPU, 오프라인) — 이미지 모드에서 LLM이 꺼져도 작동
-import json, os
+import json, os, base64, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+COMFY_INPUT = os.path.expanduser("~/ComfyUI/input")
 
 # Argos 번역기 lazy 로드 (없으면 원문 반환)
 _tr = None
@@ -35,6 +36,17 @@ class H(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(n) or b"{}")
             out = translate(data.get("text", ""))
             self._send(200, json.dumps({"text": out}, ensure_ascii=False))
+        elif self.path == "/upload":
+            # 참조 이미지(base64 data URL) → ComfyUI input 폴더 저장
+            n = int(self.headers.get("Content-Length", 0))
+            data = json.loads(self.rfile.read(n) or b"{}")
+            b64 = data.get("image", "")
+            if "," in b64: b64 = b64.split(",", 1)[1]
+            os.makedirs(COMFY_INPUT, exist_ok=True)
+            fn = "ref-%d.png" % int(time.time())
+            with open(os.path.join(COMFY_INPUT, fn), "wb") as f:
+                f.write(base64.b64decode(b64))
+            self._send(200, json.dumps({"filename": fn}))
         else:
             self._send(404, "{}")
 
