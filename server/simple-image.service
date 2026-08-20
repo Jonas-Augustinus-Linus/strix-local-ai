@@ -1,0 +1,12 @@
+[Unit]
+Description=Strix 초간단 이미지 생성 페이지 (localhost:8189 → ComfyUI 8188)
+
+[Service]
+Type=simple
+WorkingDirectory=/home/amd-ai/strix-local-ai/server
+ExecStart=/usr/bin/python3 -m http.server 8189 --bind 127.0.0.1
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

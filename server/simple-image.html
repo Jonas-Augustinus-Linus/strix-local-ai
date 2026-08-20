@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strix 이미지 생성</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, sans-serif; background:#14151a; color:#e8e8 ea;
+         display:flex; flex-direction:column; align-items:center; padding:24px; gap:16px; }
+  h1 { font-size:20px; margin:4px 0 0; color:#fff; }
+  .sub { color:#888; font-size:13px; margin:0 0 8px; }
+  .panel { width:100%; max-width:560px; display:flex; flex-direction:column; gap:12px; }
+  label { font-size:13px; color:#aaa; margin-bottom:-6px; }
+  textarea, select, input { width:100%; padding:12px; border-radius:10px; border:1px solid #333;
+         background:#1e1f26; color:#eee; font-size:15px; font-family:inherit; }
+  textarea { min-height:90px; resize:vertical; }
+  .row { display:flex; gap:10px; }
+  .row > * { flex:1; }
+  button { padding:14px; border:0; border-radius:10px; background:#4f7cff; color:#fff;
+         font-size:16px; font-weight:600; cursor:pointer; }
+  button:disabled { background:#333; color:#777; cursor:wait; }
+  #status { text-align:center; color:#9aa; font-size:14px; min-height:20px; }
+  #out { width:100%; max-width:560px; border-radius:12px; display:none; }
+  .bar { height:6px; background:#222; border-radius:3px; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:#4f7cff; transition:width .2s; }
+</style>
+</head>
+<body>
+  <h1>🎨 Strix 이미지 생성</h1>
+  <p class="sub">무검열 로컬 이미지 (Illustrious / NoobAI / Pony)</p>
+  <div class="panel">
+    <label>무엇을 그릴까요?</label>
+    <textarea id="prompt" placeholder="예: 노을 지는 바다, 파도, 아름다운 하늘, 고화질">masterpiece, best quality, </textarea>
+    <label>빼고 싶은 것 (선택)</label>
+    <input id="neg" value="lowres, bad quality, worst quality, watermark, text">
+    <div class="row">
+      <div>
+        <label>모델</label>
+        <select id="model">
+          <option>Illustrious-XL-v2.0.safetensors</option>
+          <option>NoobAI-XL-v1.1.safetensors</option>
+          <option>Pony-Diffusion-v6-XL.safetensors</option>
+        </select>
+      </div>
+      <div>
+        <label>크기</label>
+        <select id="size">
+          <option value="1024x1024">정사각 1024</option>
+          <option value="832x1216">세로 (인물)</option>
+          <option value="1216x832">가로 (풍경)</option>
+        </select>
+      </div>
+    </div>
+    <button id="go" onclick="gen()">그리기 ▶</button>
+    <div class="bar"><i id="prog"></i></div>
+    <div id="status"></div>
+  </div>
+  <img id="out">
+
+<script>
+const H = 'http://localhost:8188'; // ComfyUI 직접 호출 (CORS 허용됨)
+function wf(pos, neg, model, w, h, seed){
+  return {
+    "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":24,"cfg":5.5,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":["4",0],"positive":["6",0],"negative":["7",0],"latent_image":["5",0]}},
+    "4":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":model}},
+    "5":{"class_type":"EmptyLatentImage","inputs":{"width":w,"height":h,"batch_size":1}},
+    "6":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["4",1]}},
+    "7":{"class_type":"CLIPTextEncode","inputs":{"text":neg,"clip":["4",1]}},
+    "8":{"class_type":"VAEDecode","inputs":{"samples":["3",0],"vae":["4",2]}},
+    "9":{"class_type":"SaveImage","inputs":{"filename_prefix":"simple","images":["8",0]}}
+  };
+}
+const S = document.getElementById('status');
+const P = document.getElementById('prog');
+const B = document.getElementById('go');
+async function gen(){
+  const [w,h] = document.getElementById('size').value.split('x').map(Number);
+  const seed = Math.floor(Math.random()*1e15);
+  const body = { prompt: wf(
+    document.getElementById('prompt').value,
+    document.getElementById('neg').value,
+    document.getElementById('model').value, w, h, seed) };
+  B.disabled = true; P.style.width='5%'; S.textContent='생성 중… (약 1분)';
+  try {
+    const r = await fetch(H+'/prompt', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const j = await r.json();
+    const id = j.prompt_id;
+    if(!id){ S.textContent='오류: '+JSON.stringify(j).slice(0,120); B.disabled=false; return; }
+    // 진행 폴링
+    let done=false;
+    for(let i=0;i<120 && !done;i++){
+      await new Promise(s=>setTimeout(s,2000));
+      P.style.width = Math.min(90, 5+i*4)+'%';
+      const hr = await fetch(H+'/history/'+id); const hj = await hr.json();
+      if(hj[id] && hj[id].status && hj[id].status.completed){
+        const outs = hj[id].outputs;
+        for(const k in outs){ if(outs[k].images){
+          const im = outs[k].images[0];
+          const url = H+'/view?filename='+encodeURIComponent(im.filename)+'&subfolder='+encodeURIComponent(im.subfolder||'')+'&type='+im.type;
+          const el = document.getElementById('out'); el.src=url; el.style.display='block';
+          done=true; break;
+        }}
+      }
+    }
+    P.style.width='100%'; S.textContent = done?'완료 ✓':'시간 초과 — 다시 시도';
+  } catch(e){ S.textContent='연결 오류 — ComfyUI(8188)가 켜져 있나요?'; }
+  B.disabled=false; setTimeout(()=>P.style.width='0',800);
+}
+</script>
+</body>
+</html>
