@@ -88,7 +88,7 @@ function wf(pos, w, h, length, steps, seed){
     "9":{"class_type":"CLIPTextEncode","inputs":{"text":"blurry, distorted, static, low quality, watermark","clip":["5",0]}},
     "11":{"class_type":"KSampler","inputs":{"seed":seed,"steps":steps,"cfg":5.0,"sampler_name":"euler","scheduler":"normal","denoise":1.0,"model":["7",0],"positive":["8",0],"negative":["9",0],"latent_image":["10",0]}},
     "12":{"class_type":"VAEDecode","inputs":{"samples":["11",0],"vae":["6",0]}},
-    "13":{"class_type":"VHS_VideoCombine","inputs":{"images":["12",0],"frame_rate":16,"loop_count":0,"filename_prefix":"strixvid","format":"video/h264-mp4","pingpong":false,"save_output":true}}
+    "13":{"class_type":"VHS_VideoCombine","inputs":{"images":["12",0],"frame_rate":16,"loop_count":0,"filename_prefix":"video/strixvid","format":"video/h264-mp4","pingpong":false,"save_output":true}}
   };
   g["10"]={"class_type":"Wan22ImageToVideoLatent","inputs":{"vae":["6",0],"width":w,"height":h,"length":length,"batch_size":1}};
   if(startImage){
@@ -142,7 +142,7 @@ async function gen(){
             const g=(o.gifs||o.videos||[])[0];
             if(g){ const url=H+'/view?filename='+encodeURIComponent(g.filename)+'&subfolder='+encodeURIComponent(g.subfolder||'')+'&type='+g.type+'&format='+encodeURIComponent(g.format||'video/h264-mp4');
               const v=document.getElementById('out'); v.src=url; v.style.display='block'; v.play().catch(()=>{}); } }
-          done=true; S.textContent='완료 ✓ (~/사진/strix-ai 에 mp4 저장됨)';
+          done=true; S.textContent='완료 ✓ (~/비디오/strix-ai 에 mp4 저장됨)';
         }
       }
     }
