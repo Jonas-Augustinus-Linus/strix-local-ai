@@ -58,6 +58,19 @@ def safe(rel):
     p = os.path.realpath(os.path.join(GALLERY, rel.lstrip("/")))
     return p if (p == GALLERY or p.startswith(GALLERY + os.sep)) else None
 
+# ---------------- 웹터미널 자격증명 동기화 (비번 = 허브 접근코드) ----------------
+TERM_CRED = os.path.expanduser("~/.config/strix-hub/terminal-cred")
+def sync_term_cred(code, restart=True):
+    cfg = load_cfg()
+    user = cfg.get("term_user", "augustinus")
+    os.makedirs(os.path.dirname(TERM_CRED), exist_ok=True)
+    with open(TERM_CRED, "w") as f: f.write(f"{user}:{code}")
+    try: os.chmod(TERM_CRED, 0o600)
+    except Exception: pass
+    if restart:
+        try: subprocess.run(["systemctl", "--user", "restart", "ttyd"], timeout=12)
+        except Exception: pass
+
 LOGIN_HTML = """<!doctype html><html lang=ko><head><meta charset=utf-8>
 <title>strix@890m · auth</title><meta name=viewport content="width=device-width,initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel=stylesheet>
@@ -151,10 +164,11 @@ class H(BaseHTTPRequestHandler):
 
         if path == "/auth":  # 로그인 또는 최초 설정 (공개)
             cfg = load_cfg(); code = data.get("code", "")
-            if "hash" not in cfg:  # 미설정 → 설정
+            if "hash" not in cfg:  # 미설정 → 설정 (최초 로그인)
                 if len(code) < 4: return self._send(400, '{"error":"too short"}')
                 salt = secrets.token_hex(8)
                 cfg["salt"] = salt; cfg["hash"] = hash_code(salt, code); save_cfg(cfg)
+                sync_term_cred(code)  # 터미널 비번 = 이 코드 (초기 비번 없음, 최초설정값이 비번)
                 tok = make_token(cfg["secret"])
                 return self._send(200, '{"ok":true}', extra=[("Set-Cookie", f"strix_session={tok}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000")])
             if code and hash_code(cfg.get("salt", ""), code) == cfg["hash"]:
@@ -171,6 +185,7 @@ class H(BaseHTTPRequestHandler):
                 return self._send(401, '{"error":"old code wrong"}')
             if len(new) < 4: return self._send(400, '{"error":"too short"}')
             salt = secrets.token_hex(8); cfg["salt"] = salt; cfg["hash"] = hash_code(salt, new); save_cfg(cfg)
+            sync_term_cred(new)  # 터미널 비번도 함께 변경
             return self._send(200, '{"ok":true}')
         if path == "/translate":
             return self._send(200, json.dumps({"text": translate(data.get("text", ""))}, ensure_ascii=False))
@@ -181,20 +196,18 @@ class H(BaseHTTPRequestHandler):
             fn = "ref-%d.png" % int(time.time())
             with open(os.path.join(COMFY_INPUT, fn), "wb") as f: f.write(base64.b64decode(b64))
             return self._send(200, json.dumps({"filename": fn}))
-        if path == "/terminal-cred":  # 웹터미널 자격증명 변경 (아이디/비번) + ttyd 재시작
+        if path == "/terminal-cred":  # 웹터미널 아이디 변경 (비번은 허브 코드를 따름)
             import re
-            user = data.get("user", "").strip(); pw = data.get("pass", "")
+            user = data.get("user", "").strip()
             if not re.fullmatch(r"[A-Za-z0-9_.-]{2,32}", user):
                 return self._send(400, '{"error":"bad username"}')
-            if len(pw) < 4:
-                return self._send(400, '{"error":"password too short"}')
-            cred = os.path.expanduser("~/.config/strix-hub/terminal-cred")
-            os.makedirs(os.path.dirname(cred), exist_ok=True)
-            with open(cred, "w") as f: f.write(f"{user}:{pw}")
-            try: os.chmod(cred, 0o600)
-            except Exception: pass
-            try: subprocess.run(["systemctl", "--user", "restart", "ttyd"], timeout=12)
-            except Exception: pass
+            cfg = load_cfg(); cfg["term_user"] = user; save_cfg(cfg)
+            # 현재 비번(=허브코드) 유지한 채 아이디만 교체
+            pw = ""
+            if os.path.isfile(TERM_CRED):
+                cur = open(TERM_CRED).read()
+                if ":" in cur: pw = cur.split(":", 1)[1]
+            if pw: sync_term_cred(pw)
             return self._send(200, '{"ok":true}')
         if path == "/delete":  # 갤러리 파일 삭제
             p = safe(data.get("path", ""))
