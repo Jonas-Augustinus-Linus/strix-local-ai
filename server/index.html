@@ -141,7 +141,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
   <div class="svc term">
     <div class="row"><span class="idx">[4]</span><span class="nm">term/</span><span class="desc">이 컴퓨터 셸 · SSH 불필요</span><span class="st">ready</span></div>
     <div class="act" id="act-term"></div>
-    <div class="hint" style="margin:0 14px 12px 36px">별도 인증(basic auth) — 자격증명은 ~/.config/strix-hub/terminal-cred</div>
+    <div class="hint" style="margin:0 14px 12px 36px">별도 인증(basic auth) — <button onclick="changeTermCred()" style="color:var(--fg);border-bottom:1px dashed var(--faint);padding:0 0 1px">아이디·비번 변경</button></div>
   </div>
   <!-- video -->
   <div class="svc video">
@@ -209,6 +209,14 @@ async function changeCode(){
   if(nw.length<4){toast('4자 이상');return;}
   const r=await fetch('/auth/change',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old,new:nw})});
   toast(r.ok?'passcode changed':r.status===401?'현재 코드 틀림':'실패');
+}
+async function changeTermCred(){
+  const user=prompt('터미널 새 아이디 (영문/숫자/._-)','augustinus');if(user===null)return;
+  const pw=prompt('터미널 새 비밀번호 (4자 이상)');if(pw===null)return;
+  if(pw.length<4){toast('비번 4자 이상');return;}
+  const r=await fetch('/terminal-cred',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user,pass:pw})});
+  if(r.ok)toast('터미널 자격증명 변경됨 — 다음 접속부터 적용');
+  else{const j=await r.json().catch(()=>({}));toast('실패: '+(j.error||r.status));}
 }
 async function logout(){await fetch('/logout');location.reload();}
 

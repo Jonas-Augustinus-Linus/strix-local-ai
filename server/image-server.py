@@ -181,6 +181,21 @@ class H(BaseHTTPRequestHandler):
             fn = "ref-%d.png" % int(time.time())
             with open(os.path.join(COMFY_INPUT, fn), "wb") as f: f.write(base64.b64decode(b64))
             return self._send(200, json.dumps({"filename": fn}))
+        if path == "/terminal-cred":  # 웹터미널 자격증명 변경 (아이디/비번) + ttyd 재시작
+            import re
+            user = data.get("user", "").strip(); pw = data.get("pass", "")
+            if not re.fullmatch(r"[A-Za-z0-9_.-]{2,32}", user):
+                return self._send(400, '{"error":"bad username"}')
+            if len(pw) < 4:
+                return self._send(400, '{"error":"password too short"}')
+            cred = os.path.expanduser("~/.config/strix-hub/terminal-cred")
+            os.makedirs(os.path.dirname(cred), exist_ok=True)
+            with open(cred, "w") as f: f.write(f"{user}:{pw}")
+            try: os.chmod(cred, 0o600)
+            except Exception: pass
+            try: subprocess.run(["systemctl", "--user", "restart", "ttyd"], timeout=12)
+            except Exception: pass
+            return self._send(200, '{"ok":true}')
         if path == "/delete":  # 갤러리 파일 삭제
             p = safe(data.get("path", ""))
             if not p or not os.path.isfile(p): return self._send(404, '{"error":"not found"}')
