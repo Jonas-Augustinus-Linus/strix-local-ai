@@ -10,8 +10,11 @@ Type=simple
 ExecStartPre=-/usr/bin/systemctl --user stop llama-router.service
 ExecStart=/home/amd-ai/venvs/comfy/bin/python /home/amd-ai/ComfyUI/main.py \
   --enable-dynamic-vram --disable-mmap --cache-none --bf16-vae --reserve-vram 2 \
+  --use-split-cross-attention \
   --enable-cors-header "*" \
   --output-directory /home/amd-ai/사진/strix-ai
+# --use-split-cross-attention: 기본 pytorch SDPA가 gfx1150 ROCm에서 큰 토큰수(1536²+ FLUX DiT)에
+#   행(hang) → MES 웨지 유발. 분할 attention은 다른 커널 경로라 대토큰에서도 안전 (2026-08-21 검증)
 # 종료하면 일상용 router 자동 복귀.
 # --no-block 필수: 블로킹 start는 Conflicts와 맞물려 데드락 → stop 타임아웃 → SIGKILL
 #   (router 시작 잡이 comfyui 정지 완료를 기다리고, 정지는 이 명령 종료를 기다림)

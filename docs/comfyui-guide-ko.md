@@ -103,8 +103,9 @@ X에서 본 "관절 사진 → 그 자세로", "참조 사진 → 같은 구도�
 
 초간단 페이지(`localhost:8189/simple-image.html`) 모델 드롭다운의 **FLUX 그룹**에서 선택.
 
-- **FLUX.1-dev Abliterated V2** (무검열 GGUF Q6_K) — SDXL을 넘어서는 실사·복잡장면 품질. 손·글자·프롬프트 정확도가 SDXL보다 위.
-- **속도(890M 실측)**: 1024²·20스텝 = **~505초(8.4분)**, GTT 피크 13.8G(여유 큼 — Q8이나 더 큰 해상도도 가능).
+- **FLUX.1-dev Abliterated V2** (무검열 GGUF, **Q8 기본** / Q6 저메모리) — SDXL을 넘어서는 실사·복잡장면 품질. 손·글자·프롬프트 정확도가 SDXL보다 위.
+- **속도(890M 실측, split attention)**: 1024²·20스텝 = **~7분** (Q8 392초 — Q6 412초보다 오히려 빠름), **1536² 네이티브 = ~19분** (GTT 24G). 상세: [벤치마크](../benchmarks/2026-08-21-flux-split-attention-gfx1150.md).
+- **1536²는 `--use-split-cross-attention` 필수** — 기본 pytorch SDPA는 gfx1150에서 대토큰 행(hang) → MES 웨지. comfyui.service에 이미 적용됨.
 - **프롬프트는 문장식**: 태그 나열이 아니라 자연스러운 영어 문장(예: `a photorealistic portrait of a woman in a hanbok, golden hour, cinematic`). 번역 버튼으로 한국어 문장 그대로 변환해 쓰면 됨.
 - **주의**: abliteration이 강해 옷 지시를 무시하고 누드로 갈 때가 있음 → SFW는 `fully clothed, wearing ○○` 강조. ControlNet은 FLUX에 미적용(SDXL 전용).
 - 기술: `UnetLoaderGGUF` + `DualCLIPLoader`(t5xxl_fp8 + clip_l, type=flux) + `VAELoader`(flux-ae) → `CLIPTextEncode` → `FluxGuidance`(3.5) → `KSampler`(**cfg=1**, euler/**simple**, 20스텝, `EmptySD3LatentImage` 16채널) → `VAEDecode`. VAE는 bf16(fp16 금물), `HSA_OVERRIDE` 설정 금지.

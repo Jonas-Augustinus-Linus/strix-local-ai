@@ -50,7 +50,8 @@
             <option>RealVisXL-V5.safetensors</option>
           </optgroup>
           <optgroup label="FLUX (고품질, 문장식 프롬프트, 무검열)">
-            <option value="FLUX.1-dev-Abliterated-V2">FLUX Abliterated · Q6_K (실사, ~8분)</option>
+            <option value="FLUX-Abl-Q8">FLUX Abliterated · Q8 최고품질 (실사, ~7분)</option>
+            <option value="FLUX-Abl-Q6">FLUX Abliterated · Q6 저메모리 (실사, ~7분)</option>
           </optgroup>
         </select>
       </div>
@@ -138,8 +139,11 @@ async function checkMode(setTo){
 }
 window.addEventListener('load', ()=>checkMode());
 // ===== FLUX (무검열 abliterated, GGUF) — SDXL과 완전히 다른 그래프 =====
+// Q8이 Q6보다 빠르고(392s vs 412s @1024²) 품질도 위 — 기본값 Q8. Q6는 GTT 여유용(-2G).
+// 1536² 네이티브는 --use-split-cross-attention 필수 (benchmarks/2026-08-21-flux-split-attention-gfx1150.md)
 const FLUX_GGUF = {
-  "FLUX.1-dev-Abliterated-V2": "T8-flux.1-dev-abliterated-V2-GGUF-Q6_K.gguf"
+  "FLUX-Abl-Q8": "T8-flux.1-dev-abliterated-V2-GGUF-Q8_0.gguf",
+  "FLUX-Abl-Q6": "T8-flux.1-dev-abliterated-V2-GGUF-Q6_K.gguf"
 };
 function isFlux(model){ return model in FLUX_GGUF; }
 function fluxWf(pos, w, h, seed, hires, batch, model){
@@ -236,10 +240,21 @@ function updateModelUI(){
   const flux = isFlux(document.getElementById('model').value);
   const cn = document.getElementById('cnmode');
   const box = document.getElementById('prompt');
+  // 1536² 네이티브는 FLUX 전용 (split attention 언락, SDXL은 학습해상도 밖이라 비노출)
+  const sz = document.getElementById('size');
+  const big = sz.querySelector('option[value="1536x1536"]');
+  if(flux && !big){
+    const o = document.createElement('option');
+    o.value = "1536x1536"; o.textContent = "정사각 1536 (최대, ~19분)";
+    sz.appendChild(o);
+  } else if(!flux && big){
+    if(sz.value === "1536x1536") sz.value = "1024x1024";
+    big.remove();
+  }
   if(flux){
     cn.value="off"; cn.disabled=true; updateCnUI();
     box.placeholder = "문장으로 묘사하세요 (예: a photorealistic portrait of a woman in a hanbok, golden hour, cinematic lighting). 태그 나열보다 자연스러운 영어 문장이 좋습니다.";
-    S.textContent = "🌟 FLUX 무검열·최고품질 — 문장식 프롬프트. 1024² ~8분(이 GPU 최적). 고해상은 고품질 옵션(ESRGAN 업스케일)으로. 번역 버튼으로 한국어→영어 문장 그대로 쓰면 됩니다.";
+    S.textContent = "🌟 FLUX 무검열·최고품질 — 문장식 프롬프트. 1024² ~7분, 1536² ~19분 (네이티브). 번역 버튼으로 한국어→영어 문장 그대로 쓰면 됩니다.";
   } else {
     cn.disabled=false;
     box.placeholder = "";
@@ -312,9 +327,10 @@ async function gen(){
   const batch = Number(document.getElementById('batch').value);
   cnMode = flux ? "off" : document.getElementById('cnmode').value;  // FLUX는 SDXL ControlNet 비호환
   cnStrength = Number(document.getElementById('strength').value);
-  // FLUX ETA: 1024² Q6 20스텝 실측 505초 기준. hires는 ESRGAN(픽셀 업스케일) ~40초 추가
+  // FLUX ETA 실측(split attention, 20스텝): ≤1024² ≈400s, 1536² ≈1150s — attention 초선형이라
+  // 픽셀 비례식 쓰지 말 것. hires는 ESRGAN(픽셀 업스케일) ~100초 추가(실측 492-392)
   const perImg = flux
-    ? Math.round(505 * (w*h)/(1024*1024) * 1.2) + (hires>0 ? 40 : 0)
+    ? ((w*h) > 1024*1024+1 ? 1150 : 400) + (hires>0 ? 100 : 0)
     : (hires>=2 ? 265 : hires>=1.5 ? 150 : 55) + (poseImage?40:0);
   const G = document.getElementById('gallery'); G.innerHTML=''; const seen=new Set();
   function addImg(im){
