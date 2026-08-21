@@ -69,6 +69,7 @@ header{padding:38px 0 22px;display:flex;align-items:center;justify-content:space
 .card.chat .cico{background:var(--chat-bg);color:var(--chat)} .card.image .cico{background:var(--img-bg);color:var(--img)}
 .card.video .cico{background:var(--vid-bg);color:var(--vid)}
 .card.gallery .cico{background:var(--live-bg);color:var(--live)}
+.card.term .cico{background:#1E222A;color:#8FE3A0}
 .linkbtn{background:none;border:none;color:var(--mut);font-size:12.5px;font-family:inherit;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
 .linkbtn:hover{color:var(--ink)}
 .card h2{font-size:17px;margin:0;font-weight:700;letter-spacing:-.01em}
@@ -178,6 +179,14 @@ header{padding:38px 0 22px;display:flex;align-items:center;justify-content:space
         <a class="btn btn-open" style="background:var(--live)" href="./gallery.html">갤러리 열기 →</a>
       </div>
     </div>
+    <!-- 웹 터미널 -->
+    <div class="card term">
+      <div class="card-top">
+        <div class="cico">⌨️</div>
+        <div><h2>터미널</h2><div class="tag">이 컴퓨터 셸 · SSH 불필요</div></div>
+      </div>
+      <div class="actions" id="act-term"></div>
+    </div>
   </div>
 
   <div class="foot">
@@ -198,6 +207,7 @@ const IS_TAILNET = HOST.endsWith(".ts.net");
 const CHAT_URL = IS_TAILNET ? `https://${HOST}:8446/` : "http://localhost:3000/";
 const IMG_URL = "./simple-image.html";
 const VID_URL = "./simple-video.html";
+const TERM_URL = IS_TAILNET ? `https://${HOST}:8447/` : "http://localhost:7681/";
 
 const toast=(m)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);};
@@ -234,6 +244,9 @@ function render(){
     ai.innerHTML=`<button class="btn btn-switch" onclick="switchTo('image')">이미지 모드로 전환</button>
       <div class="hint">채팅이 내려가고 ComfyUI가 로드됩니다 (~20초)</div>`;
   }
+  // 터미널 액션 (항상 가능, 별도 베이직 인증)
+  const at=document.getElementById('act-term');
+  if(at) at.innerHTML=`<a class="btn btn-open" style="background:#2C3440" href="${TERM_URL}" target="_blank" rel="noopener">터미널 열기 →</a>`;
   // 영상 액션 (이미지 모드 필요)
   const av=document.getElementById('act-video');
   if(curMode==='image'){
