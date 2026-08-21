@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Strix 결과물 갤러리</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF0F4;--panel:#FBFCFD;--line:#DFE3EA;--ink:#171A21;--ink2:#3E4653;--mut:#6C7480;--acc:#8A46C9;--acc-bg:#F0E7FA;--bad:#BB4438;--bad-bg:#F7E4E1;--sh:0 1px 2px rgba(18,22,32,.05),0 6px 20px rgba(18,22,32,.06)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0E1014;--panel:#171A20;--line:#2A2F39;--ink:#E8EAEF;--ink2:#AEB6C2;--mut:#8A93A0;--acc:#B074E8;--acc-bg:#251A34;--bad:#E0796C;--bad-bg:#2C1815;--sh:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35)}}
+:root[data-theme=dark]{--bg:#0E1014;--panel:#171A20;--line:#2A2F39;--ink:#E8EAEF;--ink2:#AEB6C2;--mut:#8A93A0;--acc:#B074E8;--acc-bg:#251A34;--bad:#E0796C;--bad-bg:#2C1815;--sh:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,sans-serif;padding:0 18px 60px}
+.mono{font-family:"IBM Plex Mono",monospace}.wrap{max-width:1100px;margin:0 auto}
+a{color:inherit;text-decoration:none}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:22px 0 14px}
+h1{font-size:19px;margin:0;font-weight:700}.back{font-size:13px;color:var(--mut)}
+.count{font-size:13px;color:var(--mut)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 18px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+.chip{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:13px;cursor:pointer;font-weight:500}
+.chip.on{background:var(--acc-bg);color:var(--acc);border-color:transparent}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px}
+.cell{position:relative;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--panel);box-shadow:var(--sh);aspect-ratio:1;cursor:pointer}
+.cell img{width:100%;height:100%;object-fit:cover;display:block;background:var(--line)}
+.cell .meta{position:absolute;left:0;right:0;bottom:0;padding:16px 8px 6px;font-size:10.5px;color:#fff;
+background:linear-gradient(transparent,rgba(0,0,0,.72));font-family:"IBM Plex Mono",monospace;pointer-events:none}
+.cell .del{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:8px;border:none;
+background:rgba(20,16,20,.62);color:#fff;font-size:14px;cursor:pointer;display:grid;place-items:center;opacity:0;transition:.15s}
+.cell:hover .del,.cell:focus-within .del{opacity:1}
+.cell .del:hover{background:var(--bad)}
+.empty{text-align:center;color:var(--mut);padding:60px 0;font-size:14px}
+/* 라이트박스 */
+#lb{position:fixed;inset:0;background:rgba(8,8,12,.9);display:none;place-items:center;z-index:20;padding:20px}
+#lb.show{display:grid}#lb img{max-width:100%;max-height:82vh;border-radius:8px}
+#lb .cap{position:absolute;top:16px;left:16px;color:#eee;font-size:13px;font-family:"IBM Plex Mono",monospace}
+#lb .x{position:absolute;top:14px;right:16px;color:#fff;font-size:26px;cursor:pointer;background:none;border:none}
+#lb .lbdel{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;
+border:1px solid rgba(255,255,255,.25);background:rgba(187,68,56,.85);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);
+color:var(--bg);padding:11px 18px;border-radius:10px;font-size:13.5px;transition:.25s;pointer-events:none;z-index:30}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><a class="back" href="./">← 허브</a><h1>결과물 갤러리</h1></div>
+    <span class="count" id="count">불러오는 중…</span>
+  </header>
+  <div class="bar" id="folders"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">이미지가 없습니다.</div>
+</div>
+
+<div id="lb">
+  <button class="x" onclick="closeLb()">×</button>
+  <div class="cap" id="lbcap"></div>
+  <img id="lbimg" alt="">
+  <button class="lbdel" onclick="delCur()">🗑 이 이미지 삭제</button>
+</div>
+<div id="toast"></div>
+
+<script>
+let items=[], folder="ALL", cur=null;
+const toast=(m)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);};
+const fmtSize=b=>b>1048576?(b/1048576).toFixed(1)+'M':Math.round(b/1024)+'K';
+
+async function load(){
+  const r=await fetch('/list',{cache:'no-store'});
+  if(r.status===401){location.href='/';return;}
+  items=await r.json();
+  // 폴더 칩
+  const fset=[...new Set(items.map(i=>i.folder))].sort();
+  const fb=document.getElementById('folders');
+  const label=f=>f==='.'?'벤치·기타':f==='fluxbatch'?'한복':f==='fluxhuman'?'인간':f==='hidream'?'HiDream':f==='qwentest'?'Qwen':f;
+  fb.innerHTML=`<button class="chip on" data-f="ALL">전체 (${items.length})</button>`+
+    fset.map(f=>`<button class="chip" data-f="${f}">${label(f)} (${items.filter(i=>i.folder===f).length})</button>`).join('');
+  fb.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{folder=c.dataset.f;
+    fb.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));render();});
+  render();
+}
+function render(){
+  const list=folder==='ALL'?items:items.filter(i=>i.folder===folder);
+  document.getElementById('count').textContent=`${list.length}장`;
+  document.getElementById('empty').style.display=list.length?'none':'block';
+  const g=document.getElementById('grid');
+  g.innerHTML=list.map(i=>`<div class="cell" data-p="${encodeURIComponent(i.path)}">
+    <img loading="lazy" src="/thumb?p=${encodeURIComponent(i.path)}" alt="${i.name}">
+    <div class="meta">${i.folder==='.'?'':i.folder+' · '}${fmtSize(i.size)}</div>
+    <button class="del" title="삭제" data-p="${encodeURIComponent(i.path)}">🗑</button></div>`).join('');
+  g.querySelectorAll('.cell').forEach(c=>{
+    c.querySelector('img').onclick=()=>openLb(decodeURIComponent(c.dataset.p));
+    c.querySelector('.del').onclick=(e)=>{e.stopPropagation();delImg(decodeURIComponent(c.dataset.p));};
+  });
+}
+function openLb(p){cur=p;document.getElementById('lbimg').src='/full?p='+encodeURIComponent(p);
+  document.getElementById('lbcap').textContent=p;document.getElementById('lb').classList.add('show');}
+function closeLb(){document.getElementById('lb').classList.remove('show');cur=null;}
+function delCur(){if(cur){const p=cur;closeLb();delImg(p);}}
+async function delImg(p){
+  const name=p.split('/').pop();
+  if(!confirm('삭제할까요?\n'+name+'\n\n되돌릴 수 없습니다.'))return;
+  const r=await fetch('/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:p})});
+  if(r.ok){items=items.filter(i=>i.path!==p);toast('삭제됨: '+name);load();}
+  else toast('삭제 실패');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
+document.getElementById('lb').addEventListener('click',e=>{if(e.target.id==='lb')closeLb();});
+load();
+</script>
+</body>
+</html>

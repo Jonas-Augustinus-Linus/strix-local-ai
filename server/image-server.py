@@ -1,85 +1,248 @@
 #!/usr/bin/env python3
-# Strix 이미지 페이지 서버 (8189): 정적 파일 + 한→영 오프라인 번역 엔드포인트
-# 번역은 Argos Translate (CPU, 오프라인) — 이미지 모드에서 LLM이 꺼져도 작동
-import json, os, base64, time, subprocess, urllib.parse
+# Strix 허브 서버 (8189): 접근코드 인증 + 정적페이지 + 한→영 번역 + GPU 모드전환 + 결과물 갤러리
+#   인증: 첫 방문 시 코드 설정(기본 비번 없음) → HMAC 서명 쿠키(30일). 코드는 해시로만 저장.
+#   갤러리: ~/사진/strix-ai 이미지 색인/썸네일/삭제 (원격 데스크탑 대신 폴더 색인).
+import json, os, base64, time, subprocess, urllib.parse, hmac, hashlib, secrets, io
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 COMFY_INPUT = os.path.expanduser("~/ComfyUI/input")
+GALLERY = os.path.realpath(os.path.expanduser("~/사진/strix-ai"))
+CFG_DIR = os.path.expanduser("~/.config/strix-hub")
+CFG_FILE = os.path.join(CFG_DIR, "auth.json")
+IMG_EXT = (".png", ".jpg", ".jpeg", ".webp")
 
-# Argos 번역기 lazy 로드 (없으면 원문 반환)
+# ---------------- 인증 ----------------
+def load_cfg():
+    os.makedirs(CFG_DIR, exist_ok=True)
+    cfg = {}
+    if os.path.isfile(CFG_FILE):
+        try: cfg = json.load(open(CFG_FILE))
+        except Exception: cfg = {}
+    if "secret" not in cfg:
+        cfg["secret"] = secrets.token_hex(32); save_cfg(cfg)
+    return cfg
+def save_cfg(cfg):
+    os.makedirs(CFG_DIR, exist_ok=True)
+    with open(CFG_FILE, "w") as f: json.dump(cfg, f)
+    try: os.chmod(CFG_FILE, 0o600)
+    except Exception: pass
+def hash_code(salt, code): return hashlib.sha256((salt + code).encode()).hexdigest()
+def make_token(secret, days=30):
+    exp = int(time.time()) + days * 86400
+    msg = str(exp).encode()
+    sig = hmac.new(bytes.fromhex(secret), msg, hashlib.sha256).hexdigest()
+    return base64.urlsafe_b64encode(msg).decode().rstrip("=") + "." + sig
+def valid_token(secret, token):
+    try:
+        b64, sig = token.split(".")
+        msg = base64.urlsafe_b64decode(b64 + "===")
+        exp = int(msg.decode())
+        good = hmac.compare_digest(sig, hmac.new(bytes.fromhex(secret), msg, hashlib.sha256).hexdigest())
+        return good and exp > time.time()
+    except Exception: return False
+
+# ---------------- 번역 ----------------
 _tr = None
 def translate(text):
     global _tr
-    if not text.strip():
-        return text
+    if not text.strip(): return text
     try:
         if _tr is None:
-            import argostranslate.translate as t
-            _tr = t
+            import argostranslate.translate as t; _tr = t
         return _tr.translate(text, "ko", "en")
-    except Exception as e:
-        return text  # 실패 시 원문 (영어면 그대로)
+    except Exception: return text
+
+# ---------------- 갤러리 경로 안전 ----------------
+def safe(rel):
+    p = os.path.realpath(os.path.join(GALLERY, rel.lstrip("/")))
+    return p if (p == GALLERY or p.startswith(GALLERY + os.sep)) else None
+
+LOGIN_HTML = """<!doctype html><html lang=ko><head><meta charset=utf-8>
+<title>Strix AI · 접근</title><meta name=viewport content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel=stylesheet>
+<style>
+:root{--bg:#0E1014;--panel:#171A20;--line:#2A2F39;--ink:#E8EAEF;--mut:#8A93A0;--acc:#5D91F5}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);
+color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,sans-serif;padding:20px}
+.box{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:18px;
+padding:30px 26px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#5D91F5,#B074E8);
+display:grid;place-items:center;color:#fff;font-weight:700;font-size:21px;margin:0 auto 16px}
+h1{font-size:19px;text-align:center;margin:0 0 4px}p.s{text-align:center;color:var(--mut);font-size:13px;margin:0 0 22px}
+label{font-size:12.5px;color:var(--mut);display:block;margin:12px 0 6px}
+input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:#0E1014;
+color:var(--ink);font-size:15px;font-family:"IBM Plex Mono",monospace;letter-spacing:.05em}
+input:focus{outline:2px solid var(--acc);border-color:transparent}
+button{width:100%;margin-top:18px;padding:13px;border:none;border-radius:10px;background:var(--acc);color:#fff;
+font-size:15px;font-weight:600;font-family:inherit;cursor:pointer}button:hover{filter:brightness(1.08)}
+.err{color:#E0796C;font-size:13px;text-align:center;margin-top:12px;min-height:16px}
+.hint{color:var(--mut);font-size:12px;text-align:center;margin-top:14px;line-height:1.5}
+</style></head><body><div class=box>
+<div class=logo>S</div><h1 id=ttl>접근코드</h1><p class=s id=sub>Strix AI 서버</p>
+<div id=form>
+<label id=lb1>접근코드</label><input id=c1 type=password autocomplete=off autofocus>
+<div id=set2 style=display:none><label>코드 확인 (다시 입력)</label><input id=c2 type=password autocomplete=off></div>
+<button id=go>들어가기</button><div class=err id=err></div>
+<div class=hint id=hint></div>
+</div></div>
+<script>
+let configured=true;
+async function boot(){
+ try{const r=await fetch('/auth/status');const j=await r.json();configured=j.configured;}catch(e){}
+ if(!configured){document.getElementById('ttl').textContent='접근코드 설정';
+  document.getElementById('sub').textContent='처음이라 코드를 정합니다 (기본 비번 없음)';
+  document.getElementById('lb1').textContent='새 접근코드';document.getElementById('set2').style.display='block';
+  document.getElementById('go').textContent='코드 설정하고 들어가기';
+  document.getElementById('hint').textContent='이 코드로 이 서버(허브·이미지·갤러리)에 접근합니다. 잊지 마세요.';}
+}
+async function submit(){
+ const c1=document.getElementById('c1').value, err=document.getElementById('err');err.textContent='';
+ if(!c1){err.textContent='코드를 입력하세요';return;}
+ if(!configured){const c2=document.getElementById('c2').value;
+  if(c1.length<4){err.textContent='4자 이상으로 정하세요';return;}
+  if(c1!==c2){err.textContent='두 코드가 다릅니다';return;}}
+ const r=await fetch('/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:c1})});
+ if(r.ok){location.href='/';}else{err.textContent='코드가 틀렸습니다';document.getElementById('c1').value='';}
+}
+document.getElementById('go').onclick=submit;
+document.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
+boot();
+</script></body></html>"""
 
 class H(BaseHTTPRequestHandler):
-    def _send(self, code, body, ctype="application/json"):
+    def _send(self, code, body, ctype="application/json", extra=None):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Access-Control-Allow-Origin", "*")
+        if extra:
+            for k, v in extra: self.send_header(k, v)
         self.end_headers()
         if isinstance(body, str): body = body.encode()
         self.wfile.write(body)
 
+    def _cookie(self):
+        for part in self.headers.get("Cookie", "").split(";"):
+            if "=" in part:
+                k, v = part.strip().split("=", 1)
+                if k == "strix_session": return v
+        return ""
+    def _authed(self):
+        cfg = load_cfg()
+        if "hash" not in cfg: return False
+        return valid_token(cfg["secret"], self._cookie())
+
+    def _login_page(self):
+        self._send(200, LOGIN_HTML, "text/html")
+
     def do_POST(self):
-        if self.path == "/translate":
-            n = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(n) or b"{}")
-            out = translate(data.get("text", ""))
-            self._send(200, json.dumps({"text": out}, ensure_ascii=False))
-        elif self.path == "/upload":
-            # 참조 이미지(base64 data URL) → ComfyUI input 폴더 저장
-            n = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(n) or b"{}")
+        n = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(n) if n else b"{}"
+        try: data = json.loads(raw or b"{}")
+        except Exception: data = {}
+        path = self.path.split("?")[0]
+
+        if path == "/auth":  # 로그인 또는 최초 설정 (공개)
+            cfg = load_cfg(); code = data.get("code", "")
+            if "hash" not in cfg:  # 미설정 → 설정
+                if len(code) < 4: return self._send(400, '{"error":"too short"}')
+                salt = secrets.token_hex(8)
+                cfg["salt"] = salt; cfg["hash"] = hash_code(salt, code); save_cfg(cfg)
+                tok = make_token(cfg["secret"])
+                return self._send(200, '{"ok":true}', extra=[("Set-Cookie", f"strix_session={tok}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000")])
+            if code and hash_code(cfg.get("salt", ""), code) == cfg["hash"]:
+                tok = make_token(cfg["secret"])
+                return self._send(200, '{"ok":true}', extra=[("Set-Cookie", f"strix_session={tok}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000")])
+            return self._send(401, '{"error":"bad code"}')
+
+        # 이하 인증 필요
+        if not self._authed(): return self._send(401, '{"error":"auth"}')
+
+        if path == "/auth/change":  # 코드 변경
+            cfg = load_cfg(); old = data.get("old", ""); new = data.get("new", "")
+            if hash_code(cfg.get("salt", ""), old) != cfg.get("hash"):
+                return self._send(401, '{"error":"old code wrong"}')
+            if len(new) < 4: return self._send(400, '{"error":"too short"}')
+            salt = secrets.token_hex(8); cfg["salt"] = salt; cfg["hash"] = hash_code(salt, new); save_cfg(cfg)
+            return self._send(200, '{"ok":true}')
+        if path == "/translate":
+            return self._send(200, json.dumps({"text": translate(data.get("text", ""))}, ensure_ascii=False))
+        if path == "/upload":
             b64 = data.get("image", "")
             if "," in b64: b64 = b64.split(",", 1)[1]
             os.makedirs(COMFY_INPUT, exist_ok=True)
             fn = "ref-%d.png" % int(time.time())
-            with open(os.path.join(COMFY_INPUT, fn), "wb") as f:
-                f.write(base64.b64decode(b64))
-            self._send(200, json.dumps({"filename": fn}))
-        else:
-            self._send(404, "{}")
+            with open(os.path.join(COMFY_INPUT, fn), "wb") as f: f.write(base64.b64decode(b64))
+            return self._send(200, json.dumps({"filename": fn}))
+        if path == "/delete":  # 갤러리 파일 삭제
+            p = safe(data.get("path", ""))
+            if not p or not os.path.isfile(p): return self._send(404, '{"error":"not found"}')
+            try: os.remove(p); return self._send(200, '{"ok":true}')
+            except Exception as e: return self._send(500, json.dumps({"error": str(e)}))
+        return self._send(404, "{}")
 
     def do_GET(self):
-        if self.path.startswith("/mode"):
-            # GPU 모드 조회/전환 — 맥 등 원격에서 SSH 없이 채팅↔이미지 전환
-            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        path = self.path.split("?")[0]
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+
+        if path == "/auth/status":  # 공개 — 설정여부/인증여부
+            cfg = load_cfg()
+            return self._send(200, json.dumps({"configured": "hash" in cfg, "authed": self._authed()}))
+
+        # 이하 전부 인증 필요. 미인증 시: 데이터 엔드포인트는 401, 페이지는 로그인 화면.
+        if not self._authed():
+            data_ep = path in ("/list", "/thumb", "/full", "/presets", "/logout") or path.startswith("/mode")
+            return self._send(401, '{"error":"auth"}') if data_ep else self._login_page()
+
+        if path == "/logout":
+            return self._send(200, '{"ok":true}', extra=[("Set-Cookie", "strix_session=; Path=/; Max-Age=0")])
+        if path.startswith("/mode"):
             to = q.get("to", [""])[0]
-            if to == "image":
-                subprocess.run(["systemctl", "--user", "start", "comfyui"], timeout=10)
-            elif to == "chat":
-                subprocess.run(["systemctl", "--user", "stop", "comfyui"], timeout=15)
+            if to == "image": subprocess.run(["systemctl", "--user", "start", "comfyui"], timeout=10)
+            elif to == "chat": subprocess.run(["systemctl", "--user", "stop", "comfyui"], timeout=15)
             def active(u):
-                return subprocess.run(["systemctl","--user","is-active",u],
-                    capture_output=True, text=True).stdout.strip() == "active"
+                return subprocess.run(["systemctl", "--user", "is-active", u], capture_output=True, text=True).stdout.strip() == "active"
             mode = "image" if active("comfyui") else ("chat" if active("llama-router") else "off")
-            self._send(200, json.dumps({"mode": mode}))
-            return
-        if self.path == "/presets":
+            return self._send(200, json.dumps({"mode": mode}))
+        if path == "/presets":
             pdir = os.path.join(COMFY_INPUT, "presets")
             files = sorted(f for f in os.listdir(pdir)) if os.path.isdir(pdir) else []
-            files = [f for f in files if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))]
-            self._send(200, json.dumps(files))
-            return
-        path = "index.html" if self.path in ("/", "") else self.path.lstrip("/")
-        path = path.split("?")[0]
-        fp = os.path.join(ROOT, os.path.basename(path))
+            files = [f for f in files if f.lower().endswith(IMG_EXT)]
+            return self._send(200, json.dumps(files))
+        if path == "/list":  # 갤러리 색인
+            items = []
+            for root, _, files in os.walk(GALLERY):
+                for fn in files:
+                    if fn.lower().endswith(IMG_EXT):
+                        fp = os.path.join(root, fn)
+                        rel = os.path.relpath(fp, GALLERY)
+                        try: st = os.stat(fp)
+                        except Exception: continue
+                        folder = os.path.dirname(rel) or "."
+                        items.append({"path": rel, "name": fn, "folder": folder, "size": st.st_size, "mtime": int(st.st_mtime)})
+            items.sort(key=lambda x: x["mtime"], reverse=True)
+            return self._send(200, json.dumps(items, ensure_ascii=False))
+        if path in ("/thumb", "/full"):
+            p = safe((q.get("p", [""])[0]))
+            if not p or not os.path.isfile(p): return self._send(404, "no", "text/plain")
+            if path == "/full":
+                ct = "image/png" if p.lower().endswith(".png") else "image/jpeg"
+                with open(p, "rb") as f: return self._send(200, f.read(), ct)
+            try:
+                from PIL import Image
+                im = Image.open(p).convert("RGB"); im.thumbnail((360, 360))
+                buf = io.BytesIO(); im.save(buf, "JPEG", quality=80)
+                return self._send(200, buf.getvalue(), "image/jpeg")
+            except Exception:
+                with open(p, "rb") as f: return self._send(200, f.read(), "image/png")
+
+        # 정적 파일
+        rel = "index.html" if path in ("/", "") else path.lstrip("/")
+        fp = os.path.join(ROOT, os.path.basename(rel))
         if os.path.isfile(fp):
-            ctype = "text/html" if fp.endswith(".html") else "application/octet-stream"
-            with open(fp, "rb") as f:
-                self._send(200, f.read(), ctype)
-        else:
-            self._send(404, "not found", "text/plain")
+            ct = "text/html" if fp.endswith(".html") else "application/octet-stream"
+            with open(fp, "rb") as f: return self._send(200, f.read(), ct)
+        return self._send(404, "not found", "text/plain")
 
     def log_message(self, *a): pass
 
