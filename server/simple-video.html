@@ -4,45 +4,50 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>augustinus 영상 생성</title>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, sans-serif; background:#14151a; color:#e8e8ea;
-         display:flex; flex-direction:column; align-items:center; padding:24px; gap:14px; }
-  h1 { font-size:20px; margin:4px 0 0; color:#fff; }
-  .sub { color:#888; font-size:13px; margin:0 0 8px; }
-  .panel { width:100%; max-width:560px; display:flex; flex-direction:column; gap:12px; }
-  label { font-size:13px; color:#aaa; margin-bottom:-6px; }
-  textarea, select, input, button { width:100%; padding:12px; border-radius:10px; border:1px solid #333;
-         background:#1e1f26; color:#eee; font-size:15px; font-family:inherit; }
-  textarea { min-height:80px; resize:vertical; }
-  .row { display:flex; gap:10px; } .row > * { flex:1; }
-  button { border:0; background:#4f7cff; color:#fff; font-weight:600; cursor:pointer; }
-  button:disabled { background:#333; color:#777; cursor:wait; }
-  #status { text-align:center; color:#9aa; font-size:14px; min-height:20px; }
-  .bar { height:6px; background:#222; border-radius:3px; overflow:hidden; }
-  .bar > i { display:block; height:100%; width:0; background:#4f7cff; transition:width .3s; }
-  video { width:100%; max-width:560px; border-radius:12px; margin-top:6px; }
-  #modebar { width:100%; max-width:560px; padding:12px; border-radius:10px; text-align:center; display:none; }
-  .navlink { color:#4f7cff; font-size:13px; text-decoration:none; }
+  :root{color-scheme:dark;--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#ECEEF1;--dim:#828A94;--faint:#4A515C;--grn:#4DE08A;--grn-d:#2C9E5F;--grn-bg:#0E1E16;--red:#F0645A}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Nanum Gothic Coding","JetBrains Mono",ui-monospace,Menlo,monospace;background:var(--bg);color:var(--fg);
+       display:flex;flex-direction:column;align-items:center;padding:22px 18px 60px;gap:14px;font-size:15px}
+  h1{font-size:22px;margin:6px 0 0;color:var(--fg);font-weight:700}
+  h1::before{content:"$ ";color:var(--grn)}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 6px}
+  .panel{width:100%;max-width:600px;display:flex;flex-direction:column;gap:12px}
+  label{font-size:13px;color:var(--dim);margin-bottom:-4px}
+  textarea,select,input{width:100%;padding:11px 12px;border:1px solid var(--line);background:#070A0E;color:var(--fg);
+         font-size:15px;font-family:inherit}
+  textarea{min-height:88px;resize:vertical}
+  textarea:focus,select:focus,input:focus{outline:none;border-color:var(--grn)}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  button{padding:13px;border:1px solid var(--grn-d);background:var(--grn-bg);color:var(--grn);
+         font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  button:hover{background:var(--grn);color:#04110A}
+  button:disabled{border-color:var(--line);background:var(--panel);color:var(--dim);cursor:wait}
+  #status{text-align:center;color:var(--dim);font-size:14px;min-height:20px}
+  #gallery{width:100%;max-width:600px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .thumb{width:100%;border:1px solid var(--line)}
+  .bar{height:6px;background:var(--line);overflow:hidden}.bar>i{display:block;height:100%;width:0;background:var(--grn);transition:width .2s}
+  optgroup{background:#070A0E;color:var(--dim);font-style:normal} option{background:#070A0E;color:var(--fg)}
+  a{color:var(--grn)}
 </style>
 </head>
 <body>
-  <h1>🎬 augustinus 영상 생성</h1>
+  <h1>augustinus 영상 생성</h1>
   <p class="sub">무검열 로컬 영상 (Wan 2.2 · 이 컴퓨터가 연산) — <a class="navlink" href="/simple-image.html">🖼️ 이미지 생성으로</a></p>
   <div id="modebar"></div>
   <div class="panel">
-    <label>어떤 영상을 만들까요? <span style="color:#4f7cff">(영어로 쓰면 더 좋아요)</span></label>
+    <label>어떤 영상을 만들까요? <span style="color:#4DE08A">(영어로 쓰면 더 좋아요)</span></label>
     <textarea id="prompt" placeholder="예: a white cat walking in a sunny garden, cherry blossoms falling, cinematic, smooth motion">cinematic, smooth motion, </textarea>
-    <button id="tr" onclick="toEng()" style="background:#2a7d5f; padding:10px; font-size:14px;">🇰🇷→🇺🇸 한국어를 영어로 변환</button>
+    <button id="tr" onclick="toEng()" style="background:#0E1E16;color:#4DE08A;border:1px solid #2C9E5F; padding:10px; font-size:14px;">🇰🇷→🇺🇸 한국어를 영어로 변환</button>
 
     <label>🖼️ 시작 이미지 (선택 — 있으면 그 이미지가 움직입니다)</label>
     <div class="row" style="align-items:center;">
-      <button id="imgBtn" onclick="document.getElementById('imgFile').click()" style="background:#5a4a7d; padding:10px; font-size:14px; flex:2;">📎 시작 이미지 올리기</button>
-      <button id="imgClear" onclick="clearImg()" style="background:#444; padding:10px; font-size:14px; flex:1; display:none;">✕ 해제</button>
+      <button id="imgBtn" onclick="document.getElementById('imgFile').click()" style="background:#141821;color:#ECEEF1;border:1px solid #2A3038; padding:10px; font-size:14px; flex:2;">📎 시작 이미지 올리기</button>
+      <button id="imgClear" onclick="clearImg()" style="background:#141821;color:#828A94;border:1px solid #1E2530; padding:10px; font-size:14px; flex:1; display:none;">✕ 해제</button>
     </div>
     <input type="file" id="imgFile" accept="image/*" style="display:none;" onchange="uploadImg(this)">
-    <div id="imgPreview" style="display:none; color:#8a9; font-size:13px;"></div>
+    <div id="imgPreview" style="display:none; color:#828A94; font-size:13px;"></div>
 
     <div class="row">
       <div><label>길이</label>
@@ -63,7 +68,7 @@
         </select>
       </div>
     </div>
-    <label>품질(스텝): <b id="stepVal">20</b> <span style="color:#777;font-size:12px;">(높을수록 세밀·느림)</span></label>
+    <label>품질(스텝): <b id="stepVal">20</b> <span style="color:#6B7686;font-size:12px;">(높을수록 세밀·느림)</span></label>
     <input type="range" id="steps" min="10" max="30" step="2" value="20" oninput="document.getElementById('stepVal').textContent=this.value">
 
     <button id="go" onclick="gen()">🎬 영상 만들기 ▶</button>
@@ -153,10 +158,10 @@ async function gen(){
 // 영상 생성은 이미지 모드(ComfyUI)가 켜져 있어야 함 — 모드 확인
 async function checkMode(setTo){
   const bar=document.getElementById('modebar'); const url=setTo?'/mode?to='+setTo:'/mode';
-  if(setTo){bar.innerHTML='전환 중… (최대 1분)';bar.style.background='#3a3d2a';}
+  if(setTo){bar.innerHTML='전환 중… (최대 1분)';bar.style.background='#1a1e10';}
   try{ const j=await (await fetch(url)).json(); bar.style.display='block';
-    if(j.mode==='image'){ bar.style.background='#1e3a2e'; bar.innerHTML='🎬 영상/이미지 모드 (생성 가능)'; }
-    else{ bar.style.background='#3a2828'; bar.innerHTML='💬 지금 채팅 모드라 생성 불가 &nbsp; <button onclick="checkMode(\'image\')" style="width:auto;padding:6px 14px;">🎬 생성 모드로 전환</button>'; }
+    if(j.mode==='image'){ bar.style.background='#0E1E16'; bar.innerHTML='🎬 영상/이미지 모드 (생성 가능)'; }
+    else{ bar.style.background='#1E0F0D'; bar.innerHTML='💬 지금 채팅 모드라 생성 불가 &nbsp; <button onclick="checkMode(\'image\')" style="width:auto;padding:6px 14px;">🎬 생성 모드로 전환</button>'; }
   }catch(e){ bar.style.display='none'; }
 }
 window.addEventListener('load',()=>checkMode());

@@ -136,11 +136,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
     <div class="act" id="act-chat"></div>
   </div>
 
-  <!-- image -->
+  <!-- image (간단) -->
   <div class="svc image" id="svc-image">
-    <div class="row"><span class="idx">[2]</span><span class="nm">image/</span><span class="desc">실사 · 애니 · 무검열</span><span class="st" id="st-image">—</span></div>
+    <div class="row"><span class="idx">[2]</span><span class="nm">image/</span><span class="desc">실사 · 애니 · 무검열 — 간단 프롬프트</span><span class="st" id="st-image">—</span></div>
     <div class="models"><b>models:</b> <span class="star">flux-abl*</span> animagine illustrious noobai pony realvis chroma <span class="star">hidream*</span></div>
     <div class="act" id="act-image"></div>
+  </div>
+
+  <!-- advanced: ComfyUI 노드 에디터 (복잡한 세밀 설정) -->
+  <div class="svc advanced" id="svc-advanced">
+    <div class="row"><span class="idx">[2+]</span><span class="nm">advanced/</span><span class="desc">ComfyUI 노드 에디터 — 워크플로·전체 세밀제어</span><span class="st" id="st-adv">—</span></div>
+    <div class="act" id="act-advanced"></div>
   </div>
 
   <div class="sec">always-on<span class="ln"></span></div>
@@ -182,6 +188,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 const HOST=location.hostname, IS_TN=HOST.endsWith(".ts.net");
 const CHAT_URL=IS_TN?`https://${HOST}:8446/`:"http://localhost:3000/";
 const TERM_URL=IS_TN?`https://${HOST}:8447/`:"http://localhost:7681/";
+const COMFY_URL=IS_TN?`https://${HOST}:8445/`:"http://localhost:8188/";
 const IMG_URL="./simple-image.html", VID_URL="./simple-video.html";
 const $=id=>document.getElementById(id);
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);};
@@ -208,6 +215,13 @@ function render(){
     ? `<a class="cmd" href="${IMG_URL}">open image gen</a>`
     : `<button class="cmd" onclick="switchTo('image')">systemctl start image</button><div class="hint">채팅 내리고 ComfyUI 로드 (~20s)</div>`;
   $('act-term').innerHTML = `<a class="cmd" href="${TERM_URL}" target="_blank" rel="noopener">open shell</a>`;
+  // advanced (ComfyUI) — 이미지 모드 필요
+  $('st-adv').textContent = curMode==='image'?'ready':'needs image';
+  $('svc-advanced').classList.toggle('on', curMode==='image');
+  $('svc-advanced').classList.toggle('image-mode', curMode==='image');
+  $('act-advanced').innerHTML = curMode==='image'
+    ? `<a class="cmd" href="${COMFY_URL}" target="_blank" rel="noopener">open comfyui node editor ↗</a>`
+    : `<button class="cmd" onclick="switchTo('image')">requires image mode →</button>`;
   $('act-video').innerHTML = curMode==='image'
     ? `<a class="cmd" href="${VID_URL}">open video gen</a>`
     : `<button class="cmd" onclick="switchTo('image')">requires image mode →</button>`;
