@@ -59,42 +59,49 @@ def safe(rel):
     return p if (p == GALLERY or p.startswith(GALLERY + os.sep)) else None
 
 LOGIN_HTML = """<!doctype html><html lang=ko><head><meta charset=utf-8>
-<title>Strix AI · 접근</title><meta name=viewport content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel=stylesheet>
+<title>strix@890m · auth</title><meta name=viewport content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel=stylesheet>
 <style>
-:root{--bg:#0E1014;--panel:#171A20;--line:#2A2F39;--ink:#E8EAEF;--mut:#8A93A0;--acc:#5D91F5}
+:root{--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#B9C2CE;--dim:#6B7686;--faint:#454F5E;--grn:#4DE08A;--grn-d:#2C9E5F;--grn-bg:#0E1E16;--red:#F0645A}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);
-color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,sans-serif;padding:20px}
-.box{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:18px;
-padding:30px 26px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-.logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#5D91F5,#B074E8);
-display:grid;place-items:center;color:#fff;font-weight:700;font-size:21px;margin:0 auto 16px}
-h1{font-size:19px;text-align:center;margin:0 0 4px}p.s{text-align:center;color:var(--mut);font-size:13px;margin:0 0 22px}
-label{font-size:12.5px;color:var(--mut);display:block;margin:12px 0 6px}
-input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:#0E1014;
-color:var(--ink);font-size:15px;font-family:"IBM Plex Mono",monospace;letter-spacing:.05em}
-input:focus{outline:2px solid var(--acc);border-color:transparent}
-button{width:100%;margin-top:18px;padding:13px;border:none;border-radius:10px;background:var(--acc);color:#fff;
-font-size:15px;font-weight:600;font-family:inherit;cursor:pointer}button:hover{filter:brightness(1.08)}
-.err{color:#E0796C;font-size:13px;text-align:center;margin-top:12px;min-height:16px}
-.hint{color:var(--mut);font-size:12px;text-align:center;margin-top:14px;line-height:1.5}
+color:var(--fg);font-family:"Nanum Gothic Coding","JetBrains Mono",ui-monospace,monospace;padding:20px;font-size:14px;
+background-image:radial-gradient(900px 400px at 50% 0%,#12161d 0,transparent 70%)}
+.box{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);padding:22px 22px 24px}
+.bar{display:flex;gap:6px;margin:-22px -22px 18px;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--dim);font-size:12px}
+.bar .d{width:9px;height:9px;border-radius:50%;background:#2a2f39;display:inline-block;margin-top:4px}
+.bar .d.g{background:var(--grn-d)}
+pre.logo{color:var(--grn);font-size:10.5px;line-height:1.25;margin:0 0 14px;font-family:"JetBrains Mono",monospace;white-space:pre;overflow-x:auto}
+.line{color:var(--dim);font-size:12.5px;margin:2px 0}.line .g{color:var(--grn)}
+label{font-size:12px;color:var(--dim);display:block;margin:16px 0 6px}label::before{content:"$ ";color:var(--grn)}
+input{width:100%;padding:11px 12px;border:1px solid var(--line);background:#070A0E;color:var(--grn);
+font-size:15px;font-family:inherit;letter-spacing:.1em}
+input:focus{outline:none;border-color:var(--grn)}
+button{width:100%;margin-top:18px;padding:12px;border:1px solid var(--grn-d);background:var(--grn-bg);color:var(--grn);
+font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}button:hover{background:var(--grn);color:#04110A}
+.err{color:var(--red);font-size:12.5px;margin-top:12px;min-height:16px}.err:not(:empty)::before{content:"✗ "}
+.hint{color:var(--faint);font-size:11.5px;margin-top:14px;line-height:1.6}.hint::before{content:"# ";color:var(--grn-d)}
+.cur{display:inline-block;width:7px;height:14px;background:var(--grn);vertical-align:-2px;animation:bl 1s step-end infinite}
+@keyframes bl{50%{opacity:0}}
 </style></head><body><div class=box>
-<div class=logo>S</div><h1 id=ttl>접근코드</h1><p class=s id=sub>Strix AI 서버</p>
-<div id=form>
-<label id=lb1>접근코드</label><input id=c1 type=password autocomplete=off autofocus>
-<div id=set2 style=display:none><label>코드 확인 (다시 입력)</label><input id=c2 type=password autocomplete=off></div>
-<button id=go>들어가기</button><div class=err id=err></div>
+<div class=bar><span class="d g"></span><span class=d></span><span class=d></span>&nbsp;strix@890m — auth</div>
+<pre class=logo> ___ _____ ___ _____  __
+/ __|_   _| _ \\_ _\\ \\/ /
+\\__ \\ | | |   /| | >  <
+|___/ |_| |_|_\\___/_/\\_\\</pre>
+<div class=line id=sub><span class=g>root@amd-ai-gt-370</span>:~$ auth<span class=cur></span></div>
+<label id=lb1>enter passcode</label><input id=c1 type=password autocomplete=off autofocus>
+<div id=set2 style=display:none><label>confirm passcode</label><input id=c2 type=password autocomplete=off></div>
+<button id=go>authenticate →</button><div class=err id=err></div>
 <div class=hint id=hint></div>
-</div></div>
 <script>
 let configured=true;
 async function boot(){
  try{const r=await fetch('/auth/status');const j=await r.json();configured=j.configured;}catch(e){}
- if(!configured){document.getElementById('ttl').textContent='접근코드 설정';
-  document.getElementById('sub').textContent='처음이라 코드를 정합니다 (기본 비번 없음)';
-  document.getElementById('lb1').textContent='새 접근코드';document.getElementById('set2').style.display='block';
-  document.getElementById('go').textContent='코드 설정하고 들어가기';
-  document.getElementById('hint').textContent='이 코드로 이 서버(허브·이미지·갤러리)에 접근합니다. 잊지 마세요.';}
+ if(!configured){
+  document.getElementById('sub').innerHTML='<span class="g">root@amd-ai-gt-370</span>:~$ auth --set-passcode<span class=cur></span>';
+  document.getElementById('lb1').textContent='set new passcode';document.getElementById('set2').style.display='block';
+  document.getElementById('go').textContent='set & authenticate →';
+  document.getElementById('hint').textContent='첫 설정 — 기본 비번 없음. 이 코드로 허브·이미지·갤러리에 접근. 잊지 마세요.';}
 }
 async function submit(){
  const c1=document.getElementById('c1').value, err=document.getElementById('err');err.textContent='';
