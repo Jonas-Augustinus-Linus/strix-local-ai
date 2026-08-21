@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strix 이미지 생성</title>
+<title>augustinus 이미지 생성</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -29,7 +29,7 @@
 </style>
 </head>
 <body>
-  <h1>🎨 Strix 이미지 생성</h1>
+  <h1>🎨 augustinus 이미지 생성</h1>
   <p class="sub">무검열 로컬 이미지 (Illustrious / NoobAI / Pony) — <a style="color:#4f7cff;font-size:13px;text-decoration:none;" href="/simple-video.html">🎬 영상 생성으로</a></p>
   <div id="modebar" style="width:100%; max-width:560px; display:none; padding:12px; border-radius:10px; margin-bottom:4px; text-align:center;"></div>
   <div class="panel">
@@ -388,5 +388,6 @@ async function stopGen(){
   try{ await fetch(H+'/interrupt',{method:'POST'}); await fetch(H+'/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clear:true})}); }catch(e){}
 }
 </script>
+<script src="/statbar.js"></script>
 </body>
 </html>

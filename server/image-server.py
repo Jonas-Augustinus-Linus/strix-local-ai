@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# Strix 허브 서버 (8189): 접근코드 인증 + 정적페이지 + 한→영 번역 + GPU 모드전환 + 결과물 갤러리
+# augustinus 허브 서버 (8189): 접근코드 인증 + 정적페이지 + 한→영 번역 + GPU 모드전환 + 결과물 갤러리
 #   인증: 첫 방문 시 코드 설정(기본 비번 없음) → HMAC 서명 쿠키(30일). 코드는 해시로만 저장.
 #   갤러리: ~/사진/strix-ai 이미지 색인/썸네일/삭제 (원격 데스크탑 대신 폴더 색인).
-import json, os, base64, time, subprocess, urllib.parse, hmac, hashlib, secrets, io
+import json, os, base64, time, subprocess, urllib.parse, hmac, hashlib, secrets, io, glob, shutil
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -72,10 +72,10 @@ def sync_term_cred(code, restart=True):
         except Exception: pass
 
 LOGIN_HTML = """<!doctype html><html lang=ko><head><meta charset=utf-8>
-<title>strix@890m · auth</title><meta name=viewport content="width=device-width,initial-scale=1">
+<title>augustinus · auth</title><meta name=viewport content="width=device-width,initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel=stylesheet>
 <style>
-:root{--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#B9C2CE;--dim:#6B7686;--faint:#454F5E;--grn:#4DE08A;--grn-d:#2C9E5F;--grn-bg:#0E1E16;--red:#F0645A}
+:root{--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#ECEEF1;--dim:#828A94;--faint:#4A515C;--grn:#4DE08A;--grn-d:#2C9E5F;--grn-bg:#0E1E16;--red:#F0645A}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);
 color:var(--fg);font-family:"Nanum Gothic Coding","JetBrains Mono",ui-monospace,monospace;padding:20px;font-size:14px;
 background-image:radial-gradient(900px 400px at 50% 0%,#12161d 0,transparent 70%)}
@@ -96,11 +96,8 @@ font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}button:hover{b
 .cur{display:inline-block;width:7px;height:14px;background:var(--grn);vertical-align:-2px;animation:bl 1s step-end infinite}
 @keyframes bl{50%{opacity:0}}
 </style></head><body><div class=box>
-<div class=bar><span class="d g"></span><span class=d></span><span class=d></span>&nbsp;strix@890m — auth</div>
-<pre class=logo> ___ _____ ___ _____  __
-/ __|_   _| _ \\_ _\\ \\/ /
-\\__ \\ | | |   /| | >  <
-|___/ |_| |_|_\\___/_/\\_\\</pre>
+<div class=bar><span class="d g"></span><span class=d></span><span class=d></span>&nbsp;augustinus — auth</div>
+<div style="color:var(--grn);font-size:26px;font-weight:700;letter-spacing:1px;margin:0 0 12px">augustinus</div>
 <div class=line id=sub><span class=g>root@amd-ai-gt-370</span>:~$ auth<span class=cur></span></div>
 <label id=lb1>enter passcode</label><input id=c1 type=password autocomplete=off autofocus>
 <div id=set2 style=display:none><label>confirm passcode</label><input id=c2 type=password autocomplete=off></div>
@@ -129,6 +126,47 @@ document.getElementById('go').onclick=submit;
 document.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
 boot();
 </script></body></html>"""
+
+# ---------------- 시스템 상태 ----------------
+try:
+    CPU_MODEL = next(l.split(":",1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name"))
+except Exception:
+    CPU_MODEL = "unknown"
+def _rd(p, d=0):
+    try: return int(open(p).read().strip())
+    except Exception: return d
+def _hwtemp(name, label=None):
+    for h in sorted(glob.glob("/sys/class/hwmon/hwmon*")):
+        try:
+            if open(h+"/name").read().strip() != name: continue
+            for ti in sorted(glob.glob(h+"/temp*_input")):
+                if label:
+                    lf = ti.replace("_input","_label")
+                    if not os.path.exists(lf) or open(lf).read().strip() != label: continue
+                return round(_rd(ti)/1000)
+        except Exception: pass
+    return None
+def get_stats():
+    def snap():
+        v = list(map(int, open("/proc/stat").readline().split()[1:]))
+        return v[3]+v[4], sum(v)
+    i1,t1 = snap(); time.sleep(0.12); i2,t2 = snap()
+    cpu = round((1 - (i2-i1)/max(1,(t2-t1)))*100, 1)
+    mi = {}
+    for line in open("/proc/meminfo"):
+        k,_,rest = line.partition(":"); mi[k] = int(rest.split()[0])*1024
+    mem_t = mi["MemTotal"]; mem_u = mem_t - mi.get("MemAvailable", mi.get("MemFree",0))
+    G = "/sys/class/drm/card1/device"
+    du = shutil.disk_usage("/")
+    return {
+        "cpu_model": CPU_MODEL, "threads": os.cpu_count(), "cpu_pct": cpu,
+        "cpu_temp": _hwtemp("k10temp","Tctl"), "gpu_temp": _hwtemp("amdgpu","edge"), "nvme_temp": _hwtemp("nvme","Composite"),
+        "mem_total": mem_t, "mem_used": mem_u,
+        "gtt_total": _rd(G+"/mem_info_gtt_total"), "gtt_used": _rd(G+"/mem_info_gtt_used"),
+        "vram_total": _rd(G+"/mem_info_vram_total"), "vram_used": _rd(G+"/mem_info_vram_used"),
+        "gpu_busy": _rd(G+"/gpu_busy_percent"),
+        "disk_total": du.total, "disk_used": du.used, "disk_free": du.free,
+    }
 
 class H(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json", extra=None):
@@ -226,7 +264,7 @@ class H(BaseHTTPRequestHandler):
 
         # 이하 전부 인증 필요. 미인증 시: 데이터 엔드포인트는 401, 페이지는 로그인 화면.
         if not self._authed():
-            data_ep = path in ("/list", "/thumb", "/full", "/presets", "/logout") or path.startswith("/mode")
+            data_ep = path in ("/list", "/thumb", "/full", "/presets", "/logout", "/stats") or path.startswith("/mode")
             return self._send(401, '{"error":"auth"}') if data_ep else self._login_page()
 
         if path == "/logout":
@@ -244,6 +282,9 @@ class H(BaseHTTPRequestHandler):
             files = sorted(f for f in os.listdir(pdir)) if os.path.isdir(pdir) else []
             files = [f for f in files if f.lower().endswith(IMG_EXT)]
             return self._send(200, json.dumps(files))
+        if path == "/stats":  # 시스템 상태 (CPU/RAM/GTT/온도/디스크)
+            try: return self._send(200, json.dumps(get_stats()))
+            except Exception as e: return self._send(500, json.dumps({"error": str(e)}))
         if path == "/list":  # 갤러리 색인
             items = []
             for root, _, files in os.walk(GALLERY):
@@ -275,8 +316,10 @@ class H(BaseHTTPRequestHandler):
         rel = "index.html" if path in ("/", "") else path.lstrip("/")
         fp = os.path.join(ROOT, os.path.basename(rel))
         if os.path.isfile(fp):
-            ct = "text/html" if fp.endswith(".html") else "application/octet-stream"
-            with open(fp, "rb") as f: return self._send(200, f.read(), ct)
+            ext = os.path.splitext(fp)[1]
+            ct = {".html":"text/html", ".js":"text/javascript", ".css":"text/css",
+                  ".json":"application/json", ".svg":"image/svg+xml"}.get(ext, "application/octet-stream")
+            with open(fp, "rb") as f: return self._send(200, f.read(), ct+"; charset=utf-8" if ct.startswith("text") else ct)
         return self._send(404, "not found", "text/plain")
 
     def log_message(self, *a): pass

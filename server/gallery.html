@@ -2,23 +2,23 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>strix@890m · gallery</title>
+<title>augustinus · gallery</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#B9C2CE;--dim:#6B7686;--faint:#454F5E;
+:root{--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#ECEEF1;--dim:#828A94;--faint:#4A515C;
   --grn:#4DE08A;--grn-d:#2C9E5F;--grn-bg:#0E1E16;--amb:#E0A64D;--cyn:#4EC9E0;--red:#F0645A;--red-bg:#1E0F0D}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:"Nanum Gothic Coding","JetBrains Mono",ui-monospace,monospace;
-  font-size:14px;padding:0 14px 50px;background-image:radial-gradient(1000px 400px at 50% -6%,#12161d 0,transparent 70%)}
+  font-size:16px;padding:0 16px 50px;background-image:radial-gradient(1000px 400px at 50% -6%,#12161d 0,transparent 70%)}
 .wrap{max-width:1160px;margin:0 auto}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:inherit}
 :focus-visible{outline:1px solid var(--grn);outline-offset:2px}
 header{padding:24px 0 8px}
-.pline{color:var(--dim);font-size:12.5px}.pline .g{color:var(--grn)}.pline .a{color:var(--amb)}
+.pline{color:var(--dim);font-size:12.5px}.pline .g{color:var(--grn)}.pline .a{color:var(--fg)}
 .pline a{color:var(--dim);border-bottom:1px dashed var(--faint)}.pline a:hover{color:var(--grn);border-color:var(--grn)}
-.count{color:var(--dim);font-size:12.5px;margin-top:4px}.count b{color:var(--amb)}
+.count{color:var(--dim);font-size:13px;margin-top:4px}.count b{color:var(--fg)}
 .bar{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 16px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5;border-bottom:1px solid var(--line)}
 .chip{padding:5px 11px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;color:var(--dim);cursor:pointer}
 .chip:hover{border-color:var(--faint);color:var(--fg)}
@@ -27,7 +27,7 @@ header{padding:24px 0 8px}
 .cell{position:relative;border:1px solid var(--line);background:var(--panel);aspect-ratio:1;cursor:pointer;overflow:hidden}
 .cell:hover{border-color:var(--grn-d)}
 .cell img{width:100%;height:100%;object-fit:cover;display:block;background:#070A0E}
-.cell .meta{position:absolute;left:0;right:0;bottom:0;padding:14px 7px 4px;font-size:10px;color:var(--grn);
+.cell .meta{position:absolute;left:0;right:0;bottom:0;padding:14px 7px 4px;font-size:11px;color:var(--dim);
   background:linear-gradient(transparent,rgba(4,8,6,.85));pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cell .del{position:absolute;top:5px;right:5px;width:26px;height:26px;border:1px solid var(--line);
   background:rgba(10,12,16,.8);color:var(--dim);font-size:12px;cursor:pointer;display:grid;place-items:center;opacity:0;transition:.12s}
@@ -111,5 +111,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
 $('lb').addEventListener('click',e=>{if(e.target.id==='lb')closeLb();});
 load();
 </script>
+<script src="/statbar.js"></script>
 </body>
 </html>

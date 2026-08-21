@@ -9,7 +9,7 @@ Type=simple
 # 이중 안전장치 — Conflicts가 처리하지만 수동 조작 꼬임 대비
 ExecStartPre=-/usr/bin/systemctl --user stop llama-router.service
 ExecStart=/home/amd-ai/venvs/comfy/bin/python /home/amd-ai/ComfyUI/main.py \
-  --enable-dynamic-vram --disable-mmap --cache-none --bf16-vae --reserve-vram 2 \
+  --gpu-only --disable-mmap --cache-none --bf16-vae --reserve-vram 2 \
   --use-split-cross-attention \
   --enable-cors-header "*" \
   --output-directory /home/amd-ai/사진/strix-ai
