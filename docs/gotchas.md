@@ -82,3 +82,16 @@ comfyui 정지는 ExecStopPost 종료를 기다림 → 상호 대기 → Timeout
   11.0.0 오버라이드가 오히려 잘못된 커널을 고를 수 있다. 기존 `--enable-dynamic-vram`로 충분.
 - **모델 특성**: abliterated 판은 무검열 방향으로 과편향 → 옷 지시("wearing ○○")를 무시하고 누드로
   갈 때가 있다. SFW는 "fully clothed" 강조 또는 SDXL 사용.
+
+## G11. FLUX DiT를 1024 초과 해상도로 직접 돌리면 ROCm 큐가 wedge된다 (2026-08-21 실측)
+
+890M(gfx1150)에서 FLUX.1-dev GGUF는 **1024²까지만 안정**. 네이티브 1536²(또는 hires의 latent 2차패스처럼 DiT를 큰 latent로 재실행)를 하면:
+
+- KSampler가 **GPU busy 1~2%로 멈춤**(샘플링 안 들어감). 처음엔 1시간46분 방치 후 발견.
+- `/interrupt`로 안 풀리고, 프로세스가 **SIGKILL로도 안 죽는 D-state**(GPU 커널에 물림)로 남아 ROCm 큐를 점유.
+- 이후 **정상 설정(Q6/1024)조차 같은 지점에서 행** → ROCm/HIP 큐 wedge.
+- **중요 구분**: 채팅(llama.cpp=**Vulkan** 백엔드)은 계속 정상. wedge는 **ComfyUI=ROCm/PyTorch** 경로에 국한. 즉 amdgpu 자체는 안 죽음.
+- **복구**: 재부팅이 확실. (D-state 프로세스는 프로세스 재시작으로 안 풀림.)
+- `--use-pytorch-cross-attention` 플래그는 **해결 못 하고 오히려 1024까지 망가뜨림** → 쓰지 말 것.
+
+**대책(코드에 반영):** FLUX는 해상도 상한 1024, 고해상은 **DiT 재패스 금지 → ESRGAN 모델 업스케일러(4x-UltraSharp, 픽셀공간, DiT 안 거침)**로. Q8도 이 GPU에선 이점 없이 위험만 커서 미채택(Q6_K로 충분, 육안 차 거의 없음).

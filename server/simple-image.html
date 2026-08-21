@@ -49,8 +49,8 @@
             <option>Pony-Diffusion-v6-XL.safetensors</option>
             <option>RealVisXL-V5.safetensors</option>
           </optgroup>
-          <optgroup label="FLUX (고품질 ~6분/장, 문장식 프롬프트, 무검열)">
-            <option value="FLUX.1-dev-Abliterated-V2">FLUX.1-dev Abliterated · 최고품질/실사 (느림)</option>
+          <optgroup label="FLUX (고품질, 문장식 프롬프트, 무검열)">
+            <option value="FLUX.1-dev-Abliterated-V2">FLUX Abliterated · Q6_K (실사, ~8분)</option>
           </optgroup>
         </select>
       </div>
@@ -138,13 +138,14 @@ async function checkMode(setTo){
 }
 window.addEventListener('load', ()=>checkMode());
 // ===== FLUX (무검열 abliterated, GGUF) — SDXL과 완전히 다른 그래프 =====
-const FLUX_MODEL = "FLUX.1-dev-Abliterated-V2";
-const FLUX_GGUF  = "T8-flux.1-dev-abliterated-V2-GGUF-Q6_K.gguf";
-function isFlux(model){ return model===FLUX_MODEL; }
-function fluxWf(pos, w, h, seed, hires, batch){
+const FLUX_GGUF = {
+  "FLUX.1-dev-Abliterated-V2": "T8-flux.1-dev-abliterated-V2-GGUF-Q6_K.gguf"
+};
+function isFlux(model){ return model in FLUX_GGUF; }
+function fluxWf(pos, w, h, seed, hires, batch, model){
   // cfg=1 + FluxGuidance(3.5), euler/simple, 16채널 latent, bf16 VAE. 네거티브 없음(문장식 프롬프트)
   const g = {
-    "1":{"class_type":"UnetLoaderGGUF","inputs":{"unet_name":FLUX_GGUF}},
+    "1":{"class_type":"UnetLoaderGGUF","inputs":{"unet_name":FLUX_GGUF[model]}},
     "2":{"class_type":"DualCLIPLoader","inputs":{"clip_name1":"t5xxl_fp8_e4m3fn_scaled.safetensors","clip_name2":"clip_l.safetensors","type":"flux"}},
     "3":{"class_type":"VAELoader","inputs":{"vae_name":"flux-ae.safetensors"}},
     "4":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["2",0]}},
@@ -156,14 +157,16 @@ function fluxWf(pos, w, h, seed, hires, batch){
     "10":{"class_type":"SaveImage","inputs":{"filename_prefix":"flux","images":["9",0]}}
   };
   if(hires>0){
-    g["11"]={"class_type":"LatentUpscaleBy","inputs":{"samples":["8",0],"upscale_method":"nearest-exact","scale_by":hires}};
-    g["12"]={"class_type":"KSampler","inputs":{"seed":seed+1,"steps":12,"cfg":1.0,"sampler_name":"euler","scheduler":"simple","denoise":0.4,"model":["1",0],"positive":["6",0],"negative":["5",0],"latent_image":["11",0]}};
-    g["9"].inputs.samples=["12",0];
+    // FLUX 고해상은 ESRGAN 모델 업스케일(픽셀공간)로 — DiT 2차패스는 gfx1150에서 큰 토큰수 → ROCm 큐 wedge 위험(G11). 절대 latent 2차패스 쓰지 말 것.
+    g["20"]={"class_type":"UpscaleModelLoader","inputs":{"model_name":"4x-UltraSharp.safetensors"}};
+    g["21"]={"class_type":"ImageUpscaleWithModel","inputs":{"upscale_model":["20",0],"image":["9",0]}};
+    g["22"]={"class_type":"ImageScaleBy","inputs":{"image":["21",0],"upscale_method":"lanczos","scale_by":hires/4}};  // 4x모델 → 목표배율로 축소
+    g["10"].inputs.images=["22",0];
   }
   return g;
 }
 function wf(pos, neg, model, w, h, seed, hires, batch){
-  if(isFlux(model)) return fluxWf(pos, w, h, seed, hires, batch);
+  if(isFlux(model)) return fluxWf(pos, w, h, seed, hires, batch, model);
   const useCn = poseImage && cnMode!=="off";
   const posSrc = useCn ? ["20",0] : ["6",0];
   const negSrc = useCn ? ["20",1] : ["7",0];
@@ -236,7 +239,7 @@ function updateModelUI(){
   if(flux){
     cn.value="off"; cn.disabled=true; updateCnUI();
     box.placeholder = "문장으로 묘사하세요 (예: a photorealistic portrait of a woman in a hanbok, golden hour, cinematic lighting). 태그 나열보다 자연스러운 영어 문장이 좋습니다.";
-    S.textContent = "🌟 FLUX 무검열·최고품질 — 문장식 프롬프트, 장당 ~6분(1024²). 번역 버튼으로 한국어→영어 문장 그대로 쓰면 됩니다.";
+    S.textContent = "🌟 FLUX 무검열·최고품질 — 문장식 프롬프트. 1024² ~8분(이 GPU 최적). 고해상은 고품질 옵션(ESRGAN 업스케일)으로. 번역 버튼으로 한국어→영어 문장 그대로 쓰면 됩니다.";
   } else {
     cn.disabled=false;
     box.placeholder = "";
@@ -309,8 +312,9 @@ async function gen(){
   const batch = Number(document.getElementById('batch').value);
   cnMode = flux ? "off" : document.getElementById('cnmode').value;  // FLUX는 SDXL ControlNet 비호환
   cnStrength = Number(document.getElementById('strength').value);
+  // FLUX ETA: 1024² Q6 20스텝 실측 505초 기준. hires는 ESRGAN(픽셀 업스케일) ~40초 추가
   const perImg = flux
-    ? (hires>=2 ? 950 : hires>=1.5 ? 720 : 505)          // FLUX 1024² 실측 ~8.4분(cache-none 매회 재로드), hires면 2차 패스 추가
+    ? Math.round(505 * (w*h)/(1024*1024) * 1.2) + (hires>0 ? 40 : 0)
     : (hires>=2 ? 265 : hires>=1.5 ? 150 : 55) + (poseImage?40:0);
   const G = document.getElementById('gallery'); G.innerHTML=''; const seen=new Set();
   function addImg(im){
