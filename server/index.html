@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Strix AI 서버</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF0F4; --panel:#FBFCFD; --panel2:#F3F5F8; --line:#DFE3EA; --line2:#EAEDF2;
+  --ink:#171A21; --ink2:#3E4653; --mut:#6C7480; --faint:#9AA2AE;
+  --chat:#2F6BE0; --chat-bg:#E7EEFC; --img:#8A46C9; --img-bg:#F0E7FA; --vid:#B5651D; --vid-bg:#F5E9DA;
+  --live:#2E9B62; --live-bg:#E2F2E9;
+  --sh:0 1px 2px rgba(18,22,32,.05),0 6px 22px rgba(18,22,32,.06);
+  --sh-lg:0 2px 6px rgba(18,22,32,.06),0 14px 40px rgba(18,22,32,.10);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1014; --panel:#171A20; --panel2:#1E222A; --line:#2A2F39; --line2:#232830;
+  --ink:#E8EAEF; --ink2:#AEB6C2; --mut:#8A93A0; --faint:#5E6674;
+  --chat:#5D91F5; --chat-bg:#182338; --img:#B074E8; --img-bg:#251A34; --vid:#D98A45; --vid-bg:#2A2114;
+  --live:#57C288; --live-bg:#15271D;
+  --sh:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35); --sh-lg:0 2px 8px rgba(0,0,0,.4),0 16px 44px rgba(0,0,0,.5);
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1014; --panel:#171A20; --panel2:#1E222A; --line:#2A2F39; --line2:#232830;
+  --ink:#E8EAEF; --ink2:#AEB6C2; --mut:#8A93A0; --faint:#5E6674;
+  --chat:#5D91F5; --chat-bg:#182338; --img:#B074E8; --img-bg:#251A34; --vid:#D98A45; --vid-bg:#2A2114;
+  --live:#57C288; --live-bg:#15271D;
+  --sh:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35); --sh-lg:0 2px 8px rgba(0,0,0,.4),0 16px 44px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR",system-ui,-apple-system,sans-serif;line-height:1.55;
+  -webkit-font-smoothing:antialiased;padding:0 20px 60px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.wrap{max-width:840px;margin:0 auto}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none}
+:focus-visible{outline:2px solid var(--chat);outline-offset:2px;border-radius:6px}
+
+header{padding:38px 0 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px}
+.logo{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,var(--chat),var(--img));
+  display:grid;place-items:center;color:#fff;font-weight:700;font-size:19px;box-shadow:var(--sh)}
+.brand h1{font-size:20px;margin:0;letter-spacing:-.01em;font-weight:700}
+.brand .sd{font-size:12.5px;color:var(--mut);margin-top:1px}
+.statusbadge{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:7px 14px 7px 11px;font-size:13px;font-weight:500;box-shadow:var(--sh)}
+.statusbadge .d{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:none;transition:.3s}
+.statusbadge.m-chat .d{background:var(--chat);box-shadow:0 0 0 3px var(--chat-bg)}
+.statusbadge.m-image .d{background:var(--img);box-shadow:0 0 0 3px var(--img-bg)}
+.statusbadge b{font-weight:600}
+
+.hero-note{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 17px;
+  display:flex;gap:12px;align-items:flex-start;margin:6px 0 24px;box-shadow:var(--sh);font-size:13.5px;color:var(--ink2)}
+.hero-note .ic{flex:none;color:var(--vid);font-size:16px;line-height:1.4}
+.hero-note b{color:var(--ink);font-weight:600}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--sh);
+  display:flex;flex-direction:column;position:relative;transition:box-shadow .2s,transform .2s,border-color .2s}
+.card.active{box-shadow:var(--sh-lg)}
+.card.chat.active{border-color:var(--chat)} .card.image.active{border-color:var(--img)}
+.card-top{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.cico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex:none}
+.card.chat .cico{background:var(--chat-bg);color:var(--chat)} .card.image .cico{background:var(--img-bg);color:var(--img)}
+.card.video .cico{background:var(--vid-bg);color:var(--vid)}
+.card h2{font-size:17px;margin:0;font-weight:700;letter-spacing:-.01em}
+.card .tag{font-size:12px;color:var(--mut);margin-top:1px}
+.activepill{position:absolute;top:16px;right:16px;font-size:11px;font-weight:600;font-family:"IBM Plex Mono",monospace;
+  padding:3px 9px;border-radius:999px;background:var(--live-bg);color:var(--live);display:none}
+.card.active .activepill{display:inline-block}
+.mlist{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:1px}
+.mlist li{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13.5px;border-bottom:1px solid var(--line2)}
+.mlist li:last-child{border-bottom:none}
+.mlist .nm{font-weight:500}.mlist .rl{color:var(--mut);font-size:12px;margin-left:auto;font-family:"IBM Plex Mono",monospace}
+.mlist .star{color:var(--vid);font-size:11px}
+.actions{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.btn{width:100%;padding:12px 14px;border-radius:11px;font-size:14.5px;font-weight:600;text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;border:1px solid transparent}
+.btn-open{color:#fff}
+.card.chat .btn-open{background:var(--chat)} .card.image .btn-open{background:var(--img)} .card.video .btn-open{background:var(--vid)}
+.btn-open:hover{filter:brightness(1.07)}
+.btn-switch{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.btn-switch:hover{border-color:var(--mut)}
+.btn[disabled]{opacity:.5;cursor:default;filter:none}
+.hint{font-size:12px;color:var(--faint);text-align:center;margin-top:2px}
+
+.video-card{margin-top:16px}
+.foot{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);color:var(--mut);font-size:12.5px;
+  display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center}
+.foot .mono{font-size:12px;color:var(--faint)}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;
+  display:inline-block;animation:sp .7s linear infinite}
+.btn-switch .spin{border-color:rgba(120,130,145,.35);border-top-color:var(--ink)}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);opacity:0;
+  background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:10px;font-size:13.5px;font-weight:500;
+  box-shadow:var(--sh-lg);transition:.25s;pointer-events:none;z-index:9;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">S</div>
+      <div><h1>Strix AI 서버</h1><div class="sd">890M · 로컬 무검열 · 테일넷 전용</div></div>
+    </div>
+    <div id="badge" class="statusbadge"><span class="d"></span><span id="badgetxt">상태 확인 중…</span></div>
+  </header>
+
+  <div class="hero-note">
+    <span class="ic">⚡</span>
+    <div>GPU가 하나라 <b>채팅과 이미지는 동시에 못 씁니다.</b> 한쪽을 켜면 다른 쪽은 자동으로 내려갑니다 —
+      아래에서 원하는 모드를 고르면 전환(약 20–40초)한 뒤 바로 열립니다.</div>
+  </div>
+
+  <div class="grid">
+    <!-- 채팅 -->
+    <div class="card chat" id="card-chat">
+      <span class="activepill">● 켜짐</span>
+      <div class="card-top">
+        <div class="cico">💬</div>
+        <div><h2>채팅 (로컬 LLM)</h2><div class="tag">한국어 글쓰기 · 코딩 · 분석</div></div>
+      </div>
+      <ul class="mlist">
+        <li><span class="nm">Gemma 4 26B-A4B</span><span class="rl">기본·상주</span></li>
+        <li><span class="nm">Qwen3.8-27B KO</span><span class="star">★</span><span class="rl">한국어 검수</span></li>
+        <li><span class="nm">Qwen3.6-35B-A3B</span><span class="rl">코딩</span></li>
+        <li><span class="nm">gpt-oss-20B</span><span class="rl">추론</span></li>
+        <li><span class="nm">Qwen3-4B</span><span class="rl">고속</span></li>
+      </ul>
+      <div class="actions" id="act-chat"></div>
+    </div>
+
+    <!-- 이미지 -->
+    <div class="card image" id="card-image">
+      <span class="activepill">● 켜짐</span>
+      <div class="card-top">
+        <div class="cico">🖼️</div>
+        <div><h2>이미지 생성</h2><div class="tag">실사 · 애니 · 무검열</div></div>
+      </div>
+      <ul class="mlist">
+        <li><span class="nm">FLUX Abliterated</span><span class="star">★</span><span class="rl">실사·무검열</span></li>
+        <li><span class="nm">Animagine / Illustrious</span><span class="rl">애니</span></li>
+        <li><span class="nm">NoobAI / Pony</span><span class="rl">애니</span></li>
+        <li><span class="nm">RealVis XL</span><span class="rl">실사</span></li>
+        <li><span class="nm">Chroma1-HD</span><span class="rl">무검열</span></li>
+      </ul>
+      <div class="actions" id="act-image"></div>
+    </div>
+  </div>
+
+  <!-- 영상 -->
+  <div class="card video video-card">
+    <div class="card-top">
+      <div class="cico">🎬</div>
+      <div><h2>영상 (짧은 클립)</h2><div class="tag">Wan 2.2 5B · 최대 5초 · iGPU 한계로 실험용</div></div>
+    </div>
+    <div class="actions" id="act-video"></div>
+  </div>
+
+  <div class="foot">
+    <span>테일넷 전용 · 외부 비공개</span>
+    <span class="mono">OpenAI API: 이 도메인 :8443/v1</span>
+    <span class="mono">ComfyUI: :8445</span>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+// 채팅 WebUI 주소: 별도 포트(:8446)로 매핑됐으면 그 포트, 아니면 기본 도메인(:443)
+// 허브가 기본 도메인이면 채팅은 :8446, 허브가 :8444면 채팅은 기본 도메인(:443).
+const HOST = location.hostname;
+const IS_TAILNET = HOST.endsWith(".ts.net");
+// 테일넷에선 WebUI(채팅)가 :8446으로 이동됨(기본 도메인은 이 허브). 로컬에선 :3000.
+const CHAT_URL = IS_TAILNET ? `https://${HOST}:8446/` : "http://localhost:3000/";
+const IMG_URL = "./simple-image.html";
+const VID_URL = "./simple-video.html";
+
+const toast=(m)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);};
+
+let curMode="off", busy=false;
+
+async function getMode(){
+  try{const r=await fetch('/mode',{cache:'no-store'});return (await r.json()).mode;}catch(e){return "off";}
+}
+async function setMode(to){
+  const r=await fetch('/mode?to='+to,{cache:'no-store'});return (await r.json()).mode;
+}
+
+function render(){
+  const badge=document.getElementById('badge'), bt=document.getElementById('badgetxt');
+  badge.className='statusbadge'+(curMode==='chat'?' m-chat':curMode==='image'?' m-image':'');
+  bt.innerHTML = curMode==='chat'?'현재 <b>채팅 모드</b>':curMode==='image'?'현재 <b>이미지 모드</b>':'대기 중';
+  document.getElementById('card-chat').classList.toggle('active',curMode==='chat');
+  document.getElementById('card-image').classList.toggle('active',curMode==='image');
+
+  // 채팅 액션
+  const ac=document.getElementById('act-chat');
+  if(curMode==='chat'){
+    ac.innerHTML=`<a class="btn btn-open" href="${CHAT_URL}" target="_blank" rel="noopener">채팅 열기 →</a>`;
+  }else{
+    ac.innerHTML=`<button class="btn btn-switch" onclick="switchTo('chat')">채팅 모드로 전환</button>
+      <div class="hint">이미지가 내려가고 LLM이 로드됩니다 (~30초)</div>`;
+  }
+  // 이미지 액션
+  const ai=document.getElementById('act-image');
+  if(curMode==='image'){
+    ai.innerHTML=`<a class="btn btn-open" href="${IMG_URL}">이미지 생성 열기 →</a>`;
+  }else{
+    ai.innerHTML=`<button class="btn btn-switch" onclick="switchTo('image')">이미지 모드로 전환</button>
+      <div class="hint">채팅이 내려가고 ComfyUI가 로드됩니다 (~20초)</div>`;
+  }
+  // 영상 액션 (이미지 모드 필요)
+  const av=document.getElementById('act-video');
+  if(curMode==='image'){
+    av.innerHTML=`<a class="btn btn-open" href="${VID_URL}">영상 생성 열기 →</a>`;
+  }else{
+    av.innerHTML=`<button class="btn btn-switch" onclick="switchTo('image')">이미지 모드로 전환 후 사용</button>`;
+  }
+}
+
+async function switchTo(to){
+  if(busy) return; busy=true;
+  // 버튼을 스피너로
+  const cardId = to==='chat'?'act-chat':'act-image';
+  const btn=document.querySelector('#'+cardId+' .btn-switch');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> 전환 중…';}
+  toast(to==='chat'?'채팅 모드로 전환 중… LLM 로딩(~30초)':'이미지 모드로 전환 중… ComfyUI 로딩(~20초)');
+  try{ await setMode(to); }catch(e){}
+  // 모드가 실제로 바뀔 때까지 폴링
+  for(let i=0;i<40;i++){
+    await new Promise(r=>setTimeout(r,1500));
+    curMode=await getMode();
+    if(curMode===to) break;
+  }
+  busy=false; render();
+  if(curMode===to) toast('전환 완료 — 이제 열 수 있습니다');
+  else toast('전환이 지연되고 있습니다. 잠시 후 다시 시도하세요');
+}
+
+(async()=>{ curMode=await getMode(); render();
+  // 주기적 상태 갱신(다른 기기에서 전환했을 때 반영)
+  setInterval(async()=>{ if(!busy){ const m=await getMode(); if(m!==curMode){curMode=m;render();} } }, 8000);
+})();
+</script>
+</body>
+</html>
