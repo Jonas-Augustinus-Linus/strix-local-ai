@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# augustinus 허브 서버 (8189): 접근코드 인증 + 정적페이지 + 한→영 번역 + GPU 모드전환 + 결과물 갤러리
+# STRIX 허브 서버 (8189): 접근코드 인증 + 정적페이지 + 한→영 번역 + GPU 모드전환 + 결과물 갤러리
 #   인증: 첫 방문 시 코드 설정(기본 비번 없음) → HMAC 서명 쿠키(30일). 코드는 해시로만 저장.
 #   갤러리: ~/사진/strix-ai 이미지 색인/썸네일/삭제 (원격 데스크탑 대신 폴더 색인).
 import json, os, base64, time, subprocess, urllib.parse, hmac, hashlib, secrets, io, glob, shutil
@@ -72,7 +72,7 @@ def sync_term_cred(code, restart=True):
         except Exception: pass
 
 LOGIN_HTML = """<!doctype html><html lang=ko><head><meta charset=utf-8>
-<title>augustinus · auth</title><meta name=viewport content="width=device-width,initial-scale=1">
+<title>STRIX · auth</title><meta name=viewport content="width=device-width,initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel=stylesheet>
 <style>
 :root{--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#ECEEF1;--dim:#828A94;--faint:#4A515C;--grn:#4DE08A;--grn-d:#2C9E5F;--grn-bg:#0E1E16;--red:#F0645A}
@@ -96,9 +96,9 @@ font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}button:hover{b
 .cur{display:inline-block;width:7px;height:14px;background:var(--grn);vertical-align:-2px;animation:bl 1s step-end infinite}
 @keyframes bl{50%{opacity:0}}
 </style></head><body><div class=box>
-<div class=bar><span class="d g"></span><span class=d></span><span class=d></span>&nbsp;augustinus — auth</div>
-<div style="color:var(--grn);font-size:26px;font-weight:700;letter-spacing:1px;margin:0 0 12px">augustinus</div>
-<div class=line id=sub><span class=g>root@amd-ai-gt-370</span>:~$ auth<span class=cur></span></div>
+<div class=bar><span class="d g"></span><span class=d></span><span class=d></span>&nbsp;STRIX — auth</div>
+<div style="color:var(--grn);font-size:26px;font-weight:700;letter-spacing:1px;margin:0 0 12px">STRIX</div>
+<div class=line id=sub><span class=g>root@strix</span>:~$ auth<span class=cur></span></div>
 <label id=lb1>enter passcode</label><input id=c1 type=password autocomplete=off autofocus>
 <div id=set2 style=display:none><label>confirm passcode</label><input id=c2 type=password autocomplete=off></div>
 <button id=go>authenticate →</button><div class=err id=err></div>
@@ -108,7 +108,7 @@ let configured=true;
 async function boot(){
  try{const r=await fetch('/auth/status');const j=await r.json();configured=j.configured;}catch(e){}
  if(!configured){
-  document.getElementById('sub').innerHTML='<span class="g">root@amd-ai-gt-370</span>:~$ auth --set-passcode<span class=cur></span>';
+  document.getElementById('sub').innerHTML='<span class="g">root@strix</span>:~$ auth --set-passcode<span class=cur></span>';
   document.getElementById('lb1').textContent='set new passcode';document.getElementById('set2').style.display='block';
   document.getElementById('go').textContent='set & authenticate →';
   document.getElementById('hint').textContent='첫 설정 — 기본 비번 없음. 이 코드로 허브·이미지·갤러리에 접근. 잊지 마세요.';}

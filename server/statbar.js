@@ -1,4 +1,4 @@
-// augustinus 공통 시스템 상태바 — 모든 페이지 최상단 고정(한 줄). /stats 3초 폴링.
+// STRIX 공통 시스템 상태바 — 모든 페이지 최상단 고정(한 줄). /stats 3초 폴링.
 (function(){
   if(window.__augStatbar) return; window.__augStatbar=true;
   var css=`
@@ -18,7 +18,7 @@
   `;
   var s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
   var bar=document.createElement('div'); bar.id='augbar';
-  bar.innerHTML='<div class="cell host">augustinus@890m</div><div class="cell lb">상태 로딩…</div>';
+  bar.innerHTML='<div class="cell host">strix@890m</div><div class="cell lb">상태 로딩…</div>';
   document.body.insertBefore(bar, document.body.firstChild);
   function pad(){ document.body.style.paddingTop = bar.offsetHeight + 'px'; }
   pad(); window.addEventListener('resize', pad);
@@ -32,13 +32,13 @@
   async function tick(){
     try{
       var r=await fetch('/stats',{cache:'no-store'});
-      if(r.status===401){bar.innerHTML='<div class="cell host">augustinus@890m</div><div class="cell lb">로그인 필요</div>';pad();return;}
+      if(r.status===401){bar.innerHTML='<div class="cell host">strix@890m</div><div class="cell lb">로그인 필요</div>';pad();return;}
       var d=await r.json();
       var gtt=d.gtt_total?Math.round(d.gtt_used/d.gtt_total*100):0;
       var mem=d.mem_total?Math.round(d.mem_used/d.mem_total*100):0;
       var disk=d.disk_total?Math.round(d.disk_used/d.disk_total*100):0;
       bar.innerHTML=
-        '<div class="cell host" title="'+(d.cpu_model||'')+'">augustinus@890m</div>'+
+        '<div class="cell host" title="'+(d.cpu_model||'')+'">strix@890m</div>'+
         cell('CPU','<b class="'+cls(d.cpu_pct)+'">'+d.cpu_pct+'%</b> '+mini(d.cpu_pct)+(d.cpu_temp!=null?' <span class="'+tc(d.cpu_temp)+'">'+d.cpu_temp+'°</span>':''))+
         cell('GPU','<b class="'+cls(d.gpu_busy)+'">'+d.gpu_busy+'%</b> '+mini(d.gpu_busy)+(d.gpu_temp!=null?' <span class="'+tc(d.gpu_temp)+'">'+d.gpu_temp+'°</span>':''))+
         cell('GTT','<b>'+gib(d.gtt_used)+'</b>/'+gib(d.gtt_total)+'G '+mini(gtt))+

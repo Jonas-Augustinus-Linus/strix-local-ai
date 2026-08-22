@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>augustinus 영상 생성</title>
+<title>STRIX 영상 생성</title>
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{color-scheme:dark;--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#ECEEF1;--dim:#828A94;--faint:#4A515C;--grn:#4DE08A;--grn-d:#2C9E5F;--grn-bg:#0E1E16;--red:#F0645A}
@@ -33,21 +33,27 @@
 </style>
 </head>
 <body>
-  <h1>augustinus 영상 생성</h1>
-  <p class="sub">무검열 로컬 영상 (Wan 2.2 · 이 컴퓨터가 연산) — <a class="navlink" href="/simple-image.html">🖼️ 이미지 생성으로</a></p>
+  <h1>STRIX 영상 생성</h1>
+  <p class="sub">무검열 로컬 영상 (Wan 2.2 5B · HunyuanVideo 1.5) — <a class="navlink" href="/simple-image.html">🖼️ 이미지 생성으로</a></p>
   <div id="modebar"></div>
   <div class="panel">
     <label>어떤 영상을 만들까요? <span style="color:#4DE08A">(영어로 쓰면 더 좋아요)</span></label>
     <textarea id="prompt" placeholder="예: a white cat walking in a sunny garden, cherry blossoms falling, cinematic, smooth motion">cinematic, smooth motion, </textarea>
     <button id="tr" onclick="toEng()" style="background:#0E1E16;color:#4DE08A;border:1px solid #2C9E5F; padding:10px; font-size:14px;">🇰🇷→🇺🇸 한국어를 영어로 변환</button>
 
-    <label>🖼️ 시작 이미지 (선택 — 있으면 그 이미지가 움직입니다)</label>
+    <label id="i2vLabel">🖼️ 시작 이미지 (선택 — 있으면 그 이미지가 움직입니다)</label>
     <div class="row" style="align-items:center;">
       <button id="imgBtn" onclick="document.getElementById('imgFile').click()" style="background:#141821;color:#ECEEF1;border:1px solid #2A3038; padding:10px; font-size:14px; flex:2;">📎 시작 이미지 올리기</button>
       <button id="imgClear" onclick="clearImg()" style="background:#141821;color:#828A94;border:1px solid #1E2530; padding:10px; font-size:14px; flex:1; display:none;">✕ 해제</button>
     </div>
     <input type="file" id="imgFile" accept="image/*" style="display:none;" onchange="uploadImg(this)">
     <div id="imgPreview" style="display:none; color:#828A94; font-size:13px;"></div>
+
+    <label>모델</label>
+    <select id="model" onchange="updModel()">
+      <option value="wan5b">Wan 2.2 5B · 텍스트/이미지→영상 (검증됨)</option>
+      <option value="hunyuan">HunyuanVideo 1.5 · 8B 무검열 · 720p (텍스트→영상)</option>
+    </select>
 
     <div class="row">
       <div><label>길이</label>
@@ -82,8 +88,29 @@ const H = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? '
 let startImage = null;
 const S=document.getElementById('status'), P=document.getElementById('prog'), B=document.getElementById('go');
 
-// T2V/I2V 워크플로 (Wan 2.2 TI2V-5B, 검증됨)
+// 모델 디스패처
 function wf(pos, w, h, length, steps, seed){
+  return document.getElementById('model').value==='hunyuan'
+    ? hunyuanWf(pos, w, h, length, steps, seed)
+    : wanWf(pos, w, h, length, steps, seed);
+}
+// HunyuanVideo 1.5 (8B, T2V) — gfx1150 검증됨. VAEDecodeTiled 필수(일반 VAEDecode는 OOM).
+//  comfyui.service의 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True 와 함께 동작.
+function hunyuanWf(pos, w, h, length, steps, seed){
+  return {
+    "1":{"class_type":"UnetLoaderGGUF","inputs":{"unet_name":"720p/hunyuanvideo1.5_720p_t2v-Q6_K.gguf"}},
+    "2":{"class_type":"DualCLIPLoader","inputs":{"clip_name1":"qwen_2.5_vl_7b_fp8_scaled.safetensors","clip_name2":"byt5_small_glyphxl_fp16.safetensors","type":"hunyuan_video_15"}},
+    "3":{"class_type":"VAELoader","inputs":{"vae_name":"hunyuanvideo15_vae_fp16.safetensors"}},
+    "4":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["2",0]}},
+    "5":{"class_type":"CLIPTextEncode","inputs":{"text":"blurry, distorted, static, low quality, watermark","clip":["2",0]}},
+    "6":{"class_type":"EmptyHunyuanVideo15Latent","inputs":{"width":w,"height":h,"length":length,"batch_size":1}},
+    "7":{"class_type":"KSampler","inputs":{"seed":seed,"steps":steps,"cfg":6.0,"sampler_name":"euler","scheduler":"simple","denoise":1.0,"model":["1",0],"positive":["4",0],"negative":["5",0],"latent_image":["6",0]}},
+    "8":{"class_type":"VAEDecodeTiled","inputs":{"samples":["7",0],"vae":["3",0],"tile_size":256,"overlap":96,"temporal_size":16,"temporal_overlap":8}},
+    "13":{"class_type":"VHS_VideoCombine","inputs":{"images":["8",0],"frame_rate":16,"loop_count":0,"filename_prefix":"video/hunyuan","format":"video/h264-mp4","pingpong":false,"save_output":true}}
+  };
+}
+// T2V/I2V 워크플로 (Wan 2.2 TI2V-5B, 검증됨)
+function wanWf(pos, w, h, length, steps, seed){
   const g = {
     "4":{"class_type":"UNETLoader","inputs":{"unet_name":"wan2.2_ti2v_5B_fp16.safetensors","weight_dtype":"default"}},
     "5":{"class_type":"CLIPLoader","inputs":{"clip_name":"umt5_xxl_fp8_e4m3fn_scaled.safetensors","type":"wan"}},
@@ -164,7 +191,15 @@ async function checkMode(setTo){
     else{ bar.style.background='#1E0F0D'; bar.innerHTML='💬 지금 채팅 모드라 생성 불가 &nbsp; <button onclick="checkMode(\'image\')" style="width:auto;padding:6px 14px;">🎬 생성 모드로 전환</button>'; }
   }catch(e){ bar.style.display='none'; }
 }
-window.addEventListener('load',()=>checkMode());
+// Hunyuan은 텍스트→영상 전용 → 시작이미지 UI 숨김
+function updModel(){
+  const hy=document.getElementById('model').value==='hunyuan';
+  const row=document.getElementById('imgBtn').closest('.row');
+  document.getElementById('i2vLabel').style.display=hy?'none':'';
+  if(row) row.style.display=hy?'none':'flex';
+  if(hy) clearImg();
+}
+window.addEventListener('load',()=>{checkMode();updModel();});
 </script>
 <script src="/statbar.js"></script>
 </body>

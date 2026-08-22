@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>augustinus 이미지 생성</title>
+<title>STRIX 이미지 생성</title>
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{color-scheme:dark;--bg:#0A0C10;--panel:#0F1218;--line:#1E2530;--fg:#ECEEF1;--dim:#828A94;--faint:#4A515C;--grn:#4DE08A;--grn-d:#2C9E5F;--grn-bg:#0E1E16;--red:#F0645A}
@@ -33,7 +33,7 @@
 </style>
 </head>
 <body>
-  <h1>augustinus 이미지 생성</h1>
+  <h1>STRIX 이미지 생성</h1>
   <p class="sub">무검열 로컬 이미지 (Illustrious / NoobAI / Pony) — <a style="color:#4DE08A;font-size:13px;text-decoration:none;" href="/simple-video.html">🎬 영상 생성으로</a></p>
   <div id="modebar" style="width:100%; max-width:560px; display:none; padding:12px; border-radius:10px; margin-bottom:4px; text-align:center;"></div>
   <div class="panel">
@@ -59,6 +59,7 @@
           </optgroup>
           <optgroup label="HiDream (무검열 정밀 · 한복·아시아 · 청크자동)">
             <option value="HiDream-Fast">HiDream Fast · 무검열 실사 (네거티브 O, ~6분/장)</option>
+            <!-- Dev/Full/Uncensored: gfx1150에서 DiT 샘플링 행(2026-08-22 실측). 파일·배선은 미래 dGPU용 보존. -->
           </optgroup>
         </select>
       </div>
@@ -153,18 +154,28 @@ const FLUX_GGUF = {
   "FLUX-Abl-Q6": "T8-flux.1-dev-abliterated-V2-GGUF-Q6_K.gguf"
 };
 // HiDream (무검열 abliterated Llama 인코더 + 진짜 네거티브). --gpu-only 필요, 연속부하 웨지 → 청크 자동재시작.
-const HIDREAM = { "HiDream-Fast": "hidream-i1-fast-Q5_K_M.gguf" };
+// 각 HiDream 변형: dit=파일명, steps/cfg=샘플러 설정, loader=gguf|unet(fp8)
+//  Fast=16스텝 증류, Dev=28스텝 가이던스증류, Full=50스텝 실CFG, Uncensored=Full의 무검열 fp8 병합
+const HIDREAM = {
+  "HiDream-Fast":       { dit:"hidream-i1-fast-Q5_K_M.gguf",                     steps:16, cfg:1.0, loader:"gguf" },
+  "HiDream-Dev":        { dit:"hidream-i1-dev-Q6_K.gguf",                         steps:28, cfg:1.0, loader:"gguf" },
+  "HiDream-Full":       { dit:"hidream-i1-full-Q5_K_S.gguf",                      steps:50, cfg:5.0, loader:"gguf" },
+  "HiDream-Uncensored": { dit:"hidream_i1_full_uncensored_fp8_v0.2.safetensors",  steps:50, cfg:5.0, loader:"unet" }
+};
 function isHidream(m){ return m in HIDREAM; }
-function hidreamWf(pos, neg, w, h, seed, batch, dit){
+function hidreamWf(pos, neg, w, h, seed, batch, cfg){
+  const loader = cfg.loader==="unet"
+    ? {"class_type":"UNETLoader","inputs":{"unet_name":cfg.dit,"weight_dtype":"fp8_e4m3fn"}}
+    : {"class_type":"UnetLoaderGGUF","inputs":{"unet_name":cfg.dit}};
   return {
-    "1":{"class_type":"UnetLoaderGGUF","inputs":{"unet_name":dit}},
+    "1":loader,
     "2":{"class_type":"ModelSamplingSD3","inputs":{"model":["1",0],"shift":3.0}},
     "3":{"class_type":"QuadrupleCLIPLoaderGGUF","inputs":{"clip_name1":"clip_l_hidream.safetensors","clip_name2":"clip_g_hidream.safetensors","clip_name3":"t5xxl-Q5_K_M.gguf","clip_name4":"llama-3.1-8b-abliterated-Q6_K.gguf"}},
     "4":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["3",0]}},
     "5":{"class_type":"CLIPTextEncode","inputs":{"text":neg,"clip":["3",0]}},
     "6":{"class_type":"EmptySD3LatentImage","inputs":{"width":w,"height":h,"batch_size":batch}},
     "7":{"class_type":"VAELoader","inputs":{"vae_name":"hidream-ae.safetensors"}},
-    "8":{"class_type":"KSampler","inputs":{"seed":seed,"steps":16,"cfg":1.0,"sampler_name":"euler","scheduler":"normal","denoise":1.0,"model":["2",0],"positive":["4",0],"negative":["5",0],"latent_image":["6",0]}},
+    "8":{"class_type":"KSampler","inputs":{"seed":seed,"steps":cfg.steps,"cfg":cfg.cfg,"sampler_name":"euler","scheduler":"normal","denoise":1.0,"model":["2",0],"positive":["4",0],"negative":["5",0],"latent_image":["6",0]}},
     "9":{"class_type":"VAEDecode","inputs":{"samples":["8",0],"vae":["7",0]}},
     "10":{"class_type":"SaveImage","inputs":{"filename_prefix":"hidream/img","images":["9",0]}}
   };
@@ -346,7 +357,7 @@ const QUAL = {
 const NEG_ANIME = "lowres, bad quality, worst quality, jpeg artifacts, blurry, watermark, signature, text, bad anatomy, bad hands, extra digits, missing fingers, ";
 const NEG_REAL = "lowres, worst quality, low quality, blurry, watermark, text, bad anatomy, bad hands, extra digits, deformed, cartoon, anime, 3d render, ";
 async function hidreamGen(pos, neg, w, h, count){
-  const dit=HIDREAM[document.getElementById('model').value];
+  const hcfg=HIDREAM[document.getElementById('model').value];
   let produced=0, sinceRestart=0; const seedBase=Math.floor(Math.random()*1e15);
   S.textContent='HiDream 준비 — GPU 인코더 모드로 전환(~40초)…'; try{ await fetch('/comfyui-mode?vram=gpu-only'); }catch(e){}
   async function restart(msg){ S.textContent=msg; try{ await fetch('/comfyui-restart'); }catch(e){} sinceRestart=0; await new Promise(s=>setTimeout(s,2000)); }
@@ -356,7 +367,7 @@ async function hidreamGen(pos, neg, w, h, count){
   while(produced<count && !stopFlag){
     const per=Math.min(2, count-produced);
     let jid=null;
-    try{ jid=(await (await fetch(H+'/prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:hidreamWf(pos,neg,w,h,seedBase+produced,per,dit)})})).json()).prompt_id; }catch(e){}
+    try{ jid=(await (await fetch(H+'/prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:hidreamWf(pos,neg,w,h,seedBase+produced,per,hcfg)})})).json()).prompt_id; }catch(e){}
     if(!jid){ await restart('ComfyUI 재시작(웨지 복구)…'); continue; }
     let done=false;
     for(let i=0;i<100 && !done && !stopFlag;i++){
