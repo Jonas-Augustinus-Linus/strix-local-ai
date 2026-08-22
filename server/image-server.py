@@ -264,7 +264,7 @@ class H(BaseHTTPRequestHandler):
 
         # 이하 전부 인증 필요. 미인증 시: 데이터 엔드포인트는 401, 페이지는 로그인 화면.
         if not self._authed():
-            data_ep = path in ("/list", "/thumb", "/full", "/presets", "/logout", "/stats") or path.startswith("/mode")
+            data_ep = path in ("/list", "/thumb", "/full", "/presets", "/logout", "/stats", "/comfyui-restart", "/comfyui-mode") or path.startswith("/mode")
             return self._send(401, '{"error":"auth"}') if data_ep else self._login_page()
 
         if path == "/logout":
@@ -282,6 +282,27 @@ class H(BaseHTTPRequestHandler):
             files = sorted(f for f in os.listdir(pdir)) if os.path.isdir(pdir) else []
             files = [f for f in files if f.lower().endswith(IMG_EXT)]
             return self._send(200, json.dumps(files))
+        if path in ("/comfyui-restart", "/comfyui-mode"):  # HiDream 청크/config 자동화
+            try:
+                svcf = os.path.join(ROOT, "comfyui.service")
+                changed = False
+                if path == "/comfyui-mode":  # vram 플래그 전환 (HiDream=gpu-only, FLUX/SDXL=dynamic)
+                    want = q.get("vram", ["dynamic"])[0]
+                    flag = "--gpu-only" if want == "gpu-only" else "--enable-dynamic-vram"
+                    other = "--enable-dynamic-vram" if want == "gpu-only" else "--gpu-only"
+                    sc = open(svcf).read()
+                    if other in sc:
+                        open(svcf, "w").write(sc.replace(other, flag)); changed = True
+                        subprocess.run(["systemctl", "--user", "daemon-reload"], timeout=10)
+                # config 바뀌었거나 comfyui가 안 떠있으면 재시작(이미지모드 보장)
+                active = subprocess.run(["systemctl","--user","is-active","comfyui"],capture_output=True,text=True).stdout.strip()=="active"
+                if changed or not active or path == "/comfyui-restart":
+                    subprocess.run(["systemctl", "--user", "restart", "comfyui"], timeout=90)
+                    for _ in range(70):
+                        try: urllib.request.urlopen("http://127.0.0.1:8188/system_stats", timeout=2); break
+                        except Exception: time.sleep(1)
+                return self._send(200, '{"ok":true}')
+            except Exception as e: return self._send(500, json.dumps({"error": str(e)}))
         if path == "/stats":  # 시스템 상태 (CPU/RAM/GTT/온도/디스크)
             try: return self._send(200, json.dumps(get_stats()))
             except Exception as e: return self._send(500, json.dumps({"error": str(e)}))
