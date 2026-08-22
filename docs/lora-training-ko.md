@@ -9,6 +9,18 @@ LoRA는 **특정 캐릭터·화풍·개념을 모델에 추가로 가르치는**
 > - 학습은 밤에 돌려두고 자는 용도. 그동안 채팅/이미지 GPU는 못 씁니다
 > - LoRA는 "학습"이 맞습니다 (ControlNet과 달리 실제로 모델을 가르침)
 
+## 0. 어떤 모델용 LoRA인가 — 먼저 정하기 (매우 중요)
+
+**LoRA는 학습한 아키텍처에서만 작동한다.** SDXL로 학습한 LoRA는 SDXL 모델에만 붙고, Z-Image/FLUX엔 안 붙는다.
+
+| 쓰고 싶은 모델 | LoRA 학습 도구 | 이 박스 현황 |
+|---|---|---|
+| **SDXL** (Illustrious/NoobAI/Pony/Animagine/RealVis) | **kohya sd-scripts** (`lora-train.sh`) | ✅ 셋업됨 — 아래 파이프라인 |
+| **Z-Image** (실사·한복 최강) | **Ostris AI Toolkit** 또는 fal `z-image-base-trainer` | ⏳ 미설치 (원하면 설치) |
+| **FLUX** | AI Toolkit / kohya(flux 브랜치) | ⏳ 미설치 |
+
+→ **결정**: 애니·RealVis 실사 쪽이면 지금 바로 SDXL LoRA(아래). **Z-Image로 특정 인물/스타일을 고정**하고 싶으면 AI Toolkit 경로가 필요(890M에선 수 시간~밤, dGPU 오면 훨씬 편함). 처음엔 **SDXL LoRA로 흐름을 익히고**, Z-Image LoRA는 필요해지면 추가하는 걸 권한다.
+
 ## 1. 데이터 준비 (제일 중요)
 
 학습 품질은 **데이터가 90%**입니다. 좋은 데이터셋:
@@ -33,13 +45,16 @@ lora-train.sh --init 내캐릭터
 - 여기서 `myChar` 같은 **고유한 단어(트리거)**를 정하면, 나중에 그 단어로 불러냅니다
 - 캡션이 없으면 폴더 이름이 트리거가 됩니다
 
+**자동 캡션(20장 손으로 쓰기 귀찮을 때)**: WD14 Tagger로 태그를 자동 생성한 뒤 트리거 단어만 손보면 된다. ComfyUI-WD14-Tagger 노드 또는 kohya의 `finetune/tag_images_by_wd14_tagger.py` 사용. (스타일 LoRA는 캡션을 최소화[트리거만]하는 게 화풍을 더 잘 흡수한다.)
+
 ## 2. 학습 실행
 
 ```bash
-# 채팅/이미지 끄고 (GPU 독점 필요)
-gpu-mode image    # 또는 systemctl --user stop llama-router
+# 채팅·이미지 둘 다 끄고 GPU 독점 (학습은 comfyui/router 밖의 별도 프로세스)
+systemctl --user stop comfyui.service llama-router.service
 
 lora-train.sh 내캐릭터          # 기본 1500스텝
+# 끝나면 채팅 복원: systemctl --user start llama-router.service
 lora-train.sh 내캐릭터 2000     # 스텝 지정 (많을수록 오래·강하게)
 ```
 - 진행 상황이 터미널에 뜹니다. 500스텝마다 중간 저장

@@ -104,6 +104,7 @@
       <option value="off">끄기 (프롬프트만으로 생성)</option>
       <option value="pose">🕺 자세 — 참조의 포즈를 따라감</option>
       <option value="canny">📐 구도 — 참조의 윤곽/구도를 유지 (사진→애니 변환)</option>
+      <option value="ipadapter">🎨 스타일/인물/빛 — 참조의 느낌·조명·인물을 반영 (IP-Adapter)</option>
     </select>
     <div id="cnpanel" style="display:none; flex-direction:column; gap:10px;">
       <div class="row" style="align-items:center;">
@@ -240,11 +241,13 @@ function wf(pos, neg, model, w, h, seed, hires, batch){
   if(isFlux(model)) return fluxWf(pos, w, h, seed, hires, batch, model);
   if(isZimage(model)) return zimageWf(pos, neg, w, h, seed, hires, batch, ZIMAGE[model]);
   if(isHidream(model)) return hidreamWf(pos, neg, w, h, seed, batch, HIDREAM[model]);
-  const useCn = poseImage && cnMode!=="off";
+  const useCn = poseImage && (cnMode==="pose"||cnMode==="canny");
+  const useIpa = poseImage && cnMode==="ipadapter";
   const posSrc = useCn ? ["20",0] : ["6",0];
   const negSrc = useCn ? ["20",1] : ["7",0];
+  const modelSrc = useIpa ? ["31",0] : ["4",0];   // IP-Adapter가 모델을 수정
   const g = {
-    "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":28,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":["4",0],"positive":posSrc,"negative":negSrc,"latent_image":["5",0]}},
+    "3":{"class_type":"KSampler","inputs":{"seed":seed,"steps":28,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":1.0,"model":modelSrc,"positive":posSrc,"negative":negSrc,"latent_image":["5",0]}},
     "4":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":model}},
     "5":{"class_type":"EmptyLatentImage","inputs":{"width":w,"height":h,"batch_size":batch}},
     "6":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["4",1]}},
@@ -252,7 +255,7 @@ function wf(pos, neg, model, w, h, seed, hires, batch){
     "8":{"class_type":"VAEDecode","inputs":{"samples":["3",0],"vae":["4",2]}},
     "9":{"class_type":"SaveImage","inputs":{"filename_prefix":"simple","images":["8",0]}}
   };
-  if(poseImage && cnMode!=="off"){
+  if(useCn){
     g["16"]={"class_type":"LoadImage","inputs":{"image":poseImage}};
     if(cnMode==="pose"){
       // 자세: OpenPose 관절 추출 → 전용 pose ControlNet
@@ -266,10 +269,16 @@ function wf(pos, neg, model, w, h, seed, hires, batch){
     }
     g["20"]={"class_type":"ControlNetApplyAdvanced","inputs":{"positive":["6",0],"negative":["7",0],"control_net":["18",0],"image":["17",0],"strength":cnStrength,"start_percent":0.0,"end_percent":1.0,"vae":["4",2]}};
   }
+  if(useIpa){
+    // IP-Adapter: 참조 이미지의 스타일·인물·조명을 모델에 주입(SDXL). weight=강도 슬라이더.
+    g["30"]={"class_type":"LoadImage","inputs":{"image":poseImage}};
+    g["31a"]={"class_type":"IPAdapterUnifiedLoader","inputs":{"model":["4",0],"preset":"PLUS (high strength)"}};
+    g["31"]={"class_type":"IPAdapterAdvanced","inputs":{"model":["31a",0],"ipadapter":["31a",1],"image":["30",0],"weight":cnStrength,"weight_type":"linear","combine_embeds":"concat","start_at":0.0,"end_at":1.0,"embeds_scaling":"V only"}};
+  }
   if(hires>0){
     // 1차 latent를 배율만큼 업스케일 후 2차 정제 (denoise 0.5) → 디테일·해상도↑
     g["10"]={"class_type":"LatentUpscaleBy","inputs":{"samples":["3",0],"upscale_method":"nearest-exact","scale_by":hires}};
-    g["11"]={"class_type":"KSampler","inputs":{"seed":seed+1,"steps":16,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":0.5,"model":["4",0],"positive":posSrc,"negative":negSrc,"latent_image":["10",0]}};
+    g["11"]={"class_type":"KSampler","inputs":{"seed":seed+1,"steps":16,"cfg":6.0,"sampler_name":"euler_ancestral","scheduler":"normal","denoise":0.5,"model":modelSrc,"positive":posSrc,"negative":negSrc,"latent_image":["10",0]}};
     g["8"].inputs.samples=["11",0];   // VAEDecode가 2차 결과를 받도록
   }
   return g;
