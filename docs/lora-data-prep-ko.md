@@ -82,16 +82,34 @@ Z-Image/FLUX LoRA는 별도 도구(AI Toolkit). ([lora-training-ko.md](lora-trai
 - [ ] 캡션: 가르칠 것은 빼고 변하는 것만 적었나?(스타일은 트리거만)
 - [ ] 15~40장(스타일 20~50) 범위인가?
 
-## 7. 자가 데이터셋 생성 레시피 (외부 이미지 0)
+## 7. 자가 데이터셋 생성 — `gen_lora_dataset.py` (외부 이미지 0, 어떤 컨셉이든)
 
-이 박스의 강점 — 좋은 이미지를 이미 뽑을 수 있으니, 그걸로 데이터를 만든다:
+이 박스의 강점 — 좋은 이미지를 이미 뽑을 수 있으니 그걸로 데이터를 만든다. 생성기가
+**base(배울 대상)를 고정하고 프레이밍·각도·조명·배경·포즈를 자동으로 섞어** 다양성을 확보한다.
+(한복은 예시일 뿐 — 인물·스타일·의상·소품·캐릭터·컨셉 전부 `--base`/`--subjects`만 바꾸면 된다.)
 
-1. **일관 주제로 대량 생성**: Z-Image/HiDream으로 같은 컨셉(예: 한복)을 배경·포즈·조명만 바꿔 30~50장.
-2. **선별**: 손·얼굴 깨진 것 버리고 베스트 25~35장.
-3. `prep_lora_data.py <이름> --src ~/사진/strix-ai/<배치> --trigger <트리거>`.
-4. `lora-train.sh <이름>` → 그 컨셉을 **SDXL에서도** 빠르게 뽑는 LoRA 완성.
+```bash
+# 0) 이미지 모드(ComfyUI) 켜기 (허브에서 image 모드)
+# 1) 생성 — base만 바꾸면 어떤 컨셉이든
+python3 scripts/gen_lora_dataset.py <이름> --base "a Korean woman in an elegant hanbok" --count 30
+python3 scripts/gen_lora_dataset.py mecha --base "a sleek humanoid battle mech" --count 30 --model realvis
+# 스타일 LoRA: 대상까지 다양화(--subjects)
+python3 scripts/gen_lora_dataset.py ukiyoe --base "in the style of ukiyo-e woodblock print" \
+      --subjects "a woman;a samurai;a mountain;a wave;a cat" --count 30
+#    모델: z-image-turbo(기본, 동아시아 실사 최강·빠름) / z-image / realvis / illustrious / hidream-fast
+#    → ~/사진/strix-ai/lora-src/<이름>/ 에 생성
 
-→ Z-Image(느리지만 최고품질)로 데이터를 만들어 SDXL(빠름)에 스타일을 이식하는 게 특히 실용적이다.
+# 2) 선별 — 손·얼굴 깨진 것 삭제(파일 탐색기로), 베스트 20~35장 남김
+# 3) 정규화 + 캡션
+python3 scripts/prep_lora_data.py <이름> --src ~/사진/strix-ai/lora-src/<이름> --trigger <트리거>
+# 4) 훈련
+systemctl --user stop comfyui.service llama-router.service
+scripts/lora-train.sh <이름>
+```
+
+**전체 루프**: 생성(gen) → 선별 → 정규화·캡션(prep) → 훈련(train) → 프롬프트에 트리거로 사용.
+Z-Image(최고품질)로 데이터를 만들어 **SDXL(빠름)에 스타일 이식**하는 게 특히 실용적이다
+(kohya `lora-train.sh`가 SDXL LoRA를 만드니까). 컨셉이 늘어날수록 이 루프를 반복하면 된다.
 
 ## 요약
 - 종류(인물/캐릭터/스타일/개념)가 데이터·캡션 전략을 정한다.
