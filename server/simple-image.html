@@ -61,6 +61,10 @@
             <option value="HiDream-Fast">HiDream Fast · 무검열 실사 (네거티브 O, ~6분/장)</option>
             <!-- Dev/Full/Uncensored: gfx1150에서 DiT 샘플링 행(2026-08-22 실측). 파일·배선은 미래 dGPU용 보존. -->
           </optgroup>
+          <optgroup label="Z-Image (신규 6B · 동아시아 실사 최강 · 초고속)">
+            <option value="Z-Image-Turbo">Z-Image Turbo · 8스텝 초고속 무검열 실사 (~1분)</option>
+            <option value="Z-Image">Z-Image Base · 풀CFG 네거티브 고품질 (~2분)</option>
+          </optgroup>
         </select>
       </div>
       <div>
@@ -204,8 +208,37 @@ function fluxWf(pos, w, h, seed, hires, batch, model){
   }
   return g;
 }
+// Z-Image (신규 6B DiT, 동아시아 실사 최강, gfx1150 검증됨). 인코더 자동감지:
+//  CLIPLoader type="lumina2" → qwen3_4b 인코더가 z_image.te로 라우팅(ComfyUI sd.py). ModelSamplingAuraFlow.
+const ZIMAGE = {
+  "Z-Image-Turbo": { dit:"z-image-turbo-Q8_0.gguf", steps:8,  cfg:1.0 },  // 8-step 증류(네거티브 무효)
+  "Z-Image":       { dit:"z-image-Q8_0.gguf",       steps:24, cfg:4.5 }   // base: 풀CFG+진짜 네거티브
+};
+function isZimage(m){ return m in ZIMAGE; }
+function zimageWf(pos, neg, w, h, seed, hires, batch, cfg){
+  const g = {
+    "1":{"class_type":"UnetLoaderGGUF","inputs":{"unet_name":cfg.dit}},
+    "2":{"class_type":"ModelSamplingAuraFlow","inputs":{"model":["1",0],"shift":3.0}},
+    "3":{"class_type":"CLIPLoader","inputs":{"clip_name":"qwen_3_4b_fp8_mixed.safetensors","type":"lumina2"}},
+    "4":{"class_type":"CLIPTextEncode","inputs":{"text":pos,"clip":["3",0]}},
+    "5":{"class_type":"CLIPTextEncode","inputs":{"text":neg||"","clip":["3",0]}},
+    "6":{"class_type":"EmptySD3LatentImage","inputs":{"width":w,"height":h,"batch_size":batch}},
+    "7":{"class_type":"VAELoader","inputs":{"vae_name":"z_image_ae.safetensors"}},
+    "8":{"class_type":"KSampler","inputs":{"seed":seed,"steps":cfg.steps,"cfg":cfg.cfg,"sampler_name":"euler","scheduler":"simple","denoise":1.0,"model":["2",0],"positive":["4",0],"negative":["5",0],"latent_image":["6",0]}},
+    "9":{"class_type":"VAEDecode","inputs":{"samples":["8",0],"vae":["7",0]}},
+    "10":{"class_type":"SaveImage","inputs":{"filename_prefix":"zimage/img","images":["9",0]}}
+  };
+  if(hires>0){  // ESRGAN 픽셀 업스케일(FLUX와 동일 — latent 2차패스는 wedge 위험)
+    g["20"]={"class_type":"UpscaleModelLoader","inputs":{"model_name":"4x-UltraSharp.safetensors"}};
+    g["21"]={"class_type":"ImageUpscaleWithModel","inputs":{"upscale_model":["20",0],"image":["9",0]}};
+    g["22"]={"class_type":"ImageScaleBy","inputs":{"image":["21",0],"upscale_method":"lanczos","scale_by":hires/4}};
+    g["10"].inputs.images=["22",0];
+  }
+  return g;
+}
 function wf(pos, neg, model, w, h, seed, hires, batch){
   if(isFlux(model)) return fluxWf(pos, w, h, seed, hires, batch, model);
+  if(isZimage(model)) return zimageWf(pos, neg, w, h, seed, hires, batch, ZIMAGE[model]);
   if(isHidream(model)) return hidreamWf(pos, neg, w, h, seed, batch, HIDREAM[model]);
   const useCn = poseImage && cnMode!=="off";
   const posSrc = useCn ? ["20",0] : ["6",0];
@@ -284,6 +317,16 @@ function updateModelUI(){
     if(big){ if(document.getElementById('size').value==="1536x1536") document.getElementById('size').value="1024x1024"; big.remove(); }
     box.placeholder = "문장으로 묘사 + 빼고 싶은 건 아래 네거티브 칸에 (예: A Korean woman in a jade-green hanbok, palace, autumn). 무검열, 동아시아/한복 정확.";
     S.textContent = "🟢 HiDream 무검열 정밀 — 자연어 프롬프트 + 진짜 네거티브. 장수 여러 개면 청크로 자동 재시작(웨지 회피). ~6분/장.";
+    return;
+  }
+  if(isZimage(model)){
+    cn.value="off"; cn.disabled=true; updateCnUI();
+    const szEl=document.getElementById('size'), bigZ=szEl.querySelector('option[value="1536x1536"]');
+    if(bigZ){ if(szEl.value==="1536x1536") szEl.value="1024x1024"; bigZ.remove(); }
+    box.placeholder = "문장으로 묘사하세요 (예: a photorealistic portrait of a Korean woman in a white hanbok, hanok courtyard, soft window light). 동아시아 실사 최강.";
+    S.textContent = model==="Z-Image-Turbo"
+      ? "🟢 Z-Image Turbo — 8스텝 초고속 무검열 실사. 네거티브 무효(cfg1). ~1분."
+      : "🟢 Z-Image Base — 풀CFG + 진짜 네거티브 고품질. ~2분.";
     return;
   }
   // 1536² 네이티브는 FLUX 전용 (split attention 언락, SDXL은 학습해상도 밖이라 비노출)
@@ -394,7 +437,7 @@ async function gen(){
   let pos = document.getElementById('prompt').value;
   let neg = document.getElementById('neg').value;
   const flux = isFlux(model);
-  if(auto && !flux && !isHidream(model)){   // FLUX·HiDream은 자연어 프롬프트 — 애니 태그/네거티브 붙이지 않음
+  if(auto && !flux && !isHidream(model) && !isZimage(model)){   // FLUX·HiDream·Z-Image는 자연어 프롬프트 — 애니 태그/네거티브 붙이지 않음
     pos = (QUAL[model]||"") + pos;
     const negBase = model.includes("RealVis") ? NEG_REAL : NEG_ANIME;
     neg = negBase + (model.includes("Pony") ? "score_1, score_2, score_3, " : "") + neg;
@@ -409,7 +452,7 @@ async function gen(){
     document.getElementById('stopBtn').style.display='none'; B.disabled=false; setTimeout(()=>P.style.width='0',800);
     return;
   }
-  cnMode = flux ? "off" : document.getElementById('cnmode').value;  // FLUX는 SDXL ControlNet 비호환
+  cnMode = (flux||isZimage(model)) ? "off" : document.getElementById('cnmode').value;  // FLUX·Z-Image는 SDXL ControlNet 비호환
   cnStrength = Number(document.getElementById('strength').value);
   // FLUX ETA 실측(split attention, 20스텝): ≤1024² ≈400s, 1536² ≈1150s — attention 초선형이라
   // 픽셀 비례식 쓰지 말 것. hires는 ESRGAN(픽셀 업스케일) ~100초 추가(실측 492-392)
